@@ -6,6 +6,7 @@ import AuthLayout from "../components/AuthLayout";
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [isEmailNotConfirmed, setIsEmailNotConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -13,11 +14,18 @@ const Login = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Reset error state saat user mengetik ulang
+    if (isEmailNotConfirmed) setIsEmailNotConfirmed(false);
+  };
+
+  const handleGoToVerify = () => {
+    navigate("/verify-otp", { state: { email: formData.email } });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsEmailNotConfirmed(false);
     setLoading(true);
 
     try {
@@ -29,10 +37,24 @@ const Login = () => {
       localStorage.setItem("refreshToken", response.data.data.refreshToken);
       localStorage.setItem("user", JSON.stringify(response.data.data.user));
 
-      // Arahkan ke halaman utama (Dashboard)
-      navigate("/dashboard");
+      const profile = response.data.data.profile;
+      if (profile) {
+        localStorage.setItem("profile", JSON.stringify(profile));
+      }
+
+      // Arahkan ke halaman onboarding atau dashboard
+      if (profile && profile.onboarding_completed) {
+        navigate("/dashboard");
+      } else {
+        navigate("/onboarding");
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Terjadi kesalahan saat login");
+      const message = err.response?.data?.message || "Terjadi kesalahan saat login";
+      setError(message);
+      // Deteksi apakah error karena email belum dikonfirmasi
+      if (message.includes("belum dikonfirmasi") || message.includes("Email not confirmed")) {
+        setIsEmailNotConfirmed(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -52,7 +74,16 @@ const Login = () => {
         )}
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm text-center border border-red-100 font-medium">
-            {error}
+            <p>{error}</p>
+            {isEmailNotConfirmed && (
+              <button
+                type="button"
+                onClick={handleGoToVerify}
+                className="mt-2 inline-block bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+              >
+                Verifikasi Sekarang →
+              </button>
+            )}
           </div>
         )}
 

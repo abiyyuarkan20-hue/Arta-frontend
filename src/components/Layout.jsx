@@ -9,7 +9,8 @@ import {
   FiChevronDown,
   FiUser,
   FiLogOut,
-  FiUserCheck
+  FiUserCheck,
+  FiTrendingUp
 } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,9 +19,11 @@ import logoImg from "../assets/logo.png";
 const Layout = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -31,26 +34,64 @@ const Layout = () => {
         console.error("Failed to parse user data", e);
       }
     }
+
+    const storedProfile = localStorage.getItem("profile");
+    if (storedProfile) {
+      try {
+        setProfile(JSON.parse(storedProfile));
+      } catch (e) {
+        console.error("Failed to parse profile data", e);
+      }
+    }
   }, []);
 
-  const fullName = user?.user_metadata?.nama_lengkap || "Admin Usaha";
+  const fullName = profile?.nama_lengkap || user?.user_metadata?.nama_lengkap || "Admin Usaha";
   const email = user?.email || "admin@artha.id";
   const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-  const menuItems = [
-    { name: "Dashboard", path: "/dashboard", icon: <FiHome /> },
-    { name: "Transaksi", path: "/dashboard/transactions", icon: <FiList /> },
-    { name: "Laporan", path: "/dashboard/reports", icon: <FiPieChart /> },
-    { name: "Profil", path: "/dashboard/profile", icon: <FiUserCheck /> },
-    { name: "Pengaturan", path: "/dashboard/settings", icon: <FiSettings /> },
-  ];
+  const userType = profile?.user_type || "calon_pengusaha";
+
+  const menuItems = userType === "umkm_aktif" 
+    ? [
+        { name: "Dashboard", path: "/dashboard", icon: <FiHome /> },
+        { name: "Transaksi", path: "/dashboard/transactions", icon: <FiList /> },
+        { name: "Laporan", path: "/dashboard/reports", icon: <FiPieChart /> },
+        { name: "Prediksi AI", path: "/dashboard/forecasting", icon: <FiTrendingUp /> },
+        { 
+          name: "Pengaturan", 
+          icon: <FiSettings />,
+          subItems: [
+            { name: "Profil Akun", path: "/dashboard/profile" },
+            { name: "Profil Usaha", path: "/dashboard/settings?tab=profile" },
+            { name: "Manajemen Role", path: "/dashboard/settings?tab=roles" }
+          ]
+        },
+      ]
+    : [
+        { name: "Dashboard", path: "/dashboard", icon: <FiHome /> },
+        // Calon pengusaha tidak punya Transaksi & Laporan, tapi Rekomendasi
+        { name: "Rekomendasi Bisnis", path: "/dashboard/recommendations", icon: <FiPieChart /> },
+        { 
+          name: "Pengaturan", 
+          icon: <FiSettings />,
+          subItems: [
+            { name: "Profil Akun", path: "/dashboard/profile" },
+            { name: "Profil Usaha", path: "/dashboard/settings?tab=profile" },
+            { name: "Manajemen Role", path: "/dashboard/settings?tab=roles" }
+          ]
+        },
+      ];
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Hapus token autentikasi dari penyimpanan lokal
+    // Hapus data dari penyimpanan lokal
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("profile");
+    
     setIsProfileOpen(false);
     // Arahkan kembali ke halaman login
     navigate("/login");
@@ -60,9 +101,12 @@ const Layout = () => {
     <div className="flex h-screen bg-[#F8FAFC]">
       {/* Sidebar untuk Desktop */}
       <motion.aside 
+        onMouseEnter={() => setIsDesktopSidebarCollapsed(false)}
+        onMouseLeave={() => setIsDesktopSidebarCollapsed(true)}
         animate={{ width: isDesktopSidebarCollapsed ? 96 : 288 }} // 288 = w-72, 96 = w-24
-        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-        className="bg-white border-r border-slate-200 hidden lg:flex flex-col shadow-sm z-20 overflow-hidden"
+        transition={{ type: "spring", stiffness: 250, damping: 25 }}
+        className="bg-white border-r border-slate-200 hidden lg:flex flex-col shadow-sm z-20 overflow-hidden absolute inset-y-0 left-0 hover:shadow-xl"
+        style={{ position: 'relative' }} // Changed from static to relative so it pushes content when expanding or we can make it absolute
       >
         <div className="h-20 flex items-center justify-center border-b border-slate-100 px-4">
           <div className="flex items-center justify-center w-full min-w-max">
@@ -73,35 +117,107 @@ const Layout = () => {
             />
           </div>
         </div>
-        <nav className={`flex-1 space-y-2 overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isDesktopSidebarCollapsed ? 'p-4' : 'p-6'}`}>
+        <nav className={`flex-1 space-y-2 overflow-y-auto overflow-x-hidden transition-all duration-400 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isDesktopSidebarCollapsed ? 'p-4' : 'p-6'}`}>
           {menuItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.path}
-              title={isDesktopSidebarCollapsed ? item.name : ""}
-              className={`flex items-center rounded-xl transition-colors duration-200 ${
-                isDesktopSidebarCollapsed ? 'justify-center px-0 py-3.5' : 'px-5 py-3.5'
-              } ${
-                location.pathname === item.path
-                  ? "bg-indigo-50 text-indigo-700 font-bold shadow-sm shadow-indigo-100"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-              }`}
-            >
-              <span className="text-xl min-w-[24px] flex justify-center">{item.icon}</span>
-              <AnimatePresence>
-                {!isDesktopSidebarCollapsed && (
-                  <motion.span 
-                    initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                    animate={{ opacity: 1, width: "auto", marginLeft: 12 }}
-                    exit={{ opacity: 0, width: 0, marginLeft: 0 }}
-                    transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="text-[15px] whitespace-nowrap overflow-hidden origin-left"
+            <div key={item.name}>
+              {item.subItems ? (
+                <>
+                  <button
+                    title={isDesktopSidebarCollapsed ? item.name : ""}
+                    onClick={() => {
+                      if (isDesktopSidebarCollapsed) {
+                        setIsDesktopSidebarCollapsed(false);
+                      }
+                      setIsSettingsOpen(!isSettingsOpen);
+                    }}
+                    className={`w-full flex items-center justify-between rounded-xl transition-colors duration-200 ${
+                      isDesktopSidebarCollapsed ? 'px-0 py-3.5 justify-center' : 'px-5 py-3.5'
+                    } ${
+                      item.subItems.some(sub => location.pathname === sub.path.split('?')[0])
+                        ? "bg-slate-100 text-slate-900 font-bold"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                    }`}
                   >
-                    {item.name}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </Link>
+                    <div className="flex items-center">
+                      <span className={`text-xl min-w-[24px] flex justify-center ${isDesktopSidebarCollapsed ? 'mx-auto' : ''}`}>{item.icon}</span>
+                      <AnimatePresence>
+                        {!isDesktopSidebarCollapsed && (
+                          <motion.span 
+                            initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                            animate={{ opacity: 1, width: "auto", marginLeft: 12 }}
+                            exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                            transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                            className="text-[15px] whitespace-nowrap overflow-hidden origin-left"
+                          >
+                            {item.name}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    {!isDesktopSidebarCollapsed && (
+                      <FiChevronDown className={`transition-transform duration-300 ${isSettingsOpen ? "rotate-180" : ""}`} />
+                    )}
+                  </button>
+                  <AnimatePresence>
+                    {isSettingsOpen && !isDesktopSidebarCollapsed && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden pl-12 mt-1 space-y-1"
+                      >
+                        {item.subItems.map((subItem) => {
+                          const isActive = subItem.path.includes('?') 
+                            ? location.search.includes(subItem.path.split('?')[1]) || (location.pathname === "/dashboard/settings" && !location.search && subItem.path.includes("tab=roles"))
+                            : location.pathname === subItem.path;
+
+                          return (
+                            <Link
+                              key={subItem.name}
+                              to={subItem.path}
+                              className={`block py-2.5 px-4 text-sm font-medium transition-all ${
+                                isActive
+                                  ? "border-l-[3px] border-slate-800 text-slate-900 bg-slate-50/80 font-bold" 
+                                  : "border-l-[3px] border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                              }`}
+                            >
+                              {subItem.name}
+                            </Link>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              ) : (
+                <Link
+                  to={item.path}
+                  title={isDesktopSidebarCollapsed ? item.name : ""}
+                  className={`flex items-center rounded-xl transition-colors duration-200 ${
+                    isDesktopSidebarCollapsed ? 'justify-center px-0 py-3.5' : 'px-5 py-3.5'
+                  } ${
+                    location.pathname === item.path
+                      ? "bg-slate-100 text-slate-900 font-bold"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                  }`}
+                >
+                  <span className="text-xl min-w-[24px] flex justify-center">{item.icon}</span>
+                  <AnimatePresence>
+                    {!isDesktopSidebarCollapsed && (
+                      <motion.span 
+                        initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                        animate={{ opacity: 1, width: "auto", marginLeft: 12 }}
+                        exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                        transition={{ type: "spring", stiffness: 250, damping: 25 }}
+                        className="text-[15px] whitespace-nowrap overflow-hidden origin-left"
+                      >
+                        {item.name}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              )}
+            </div>
           ))}
         </nav>
       </motion.aside>
@@ -135,21 +251,72 @@ const Layout = () => {
                   <FiX size={24} />
                 </button>
               </div>
-              <nav className="flex-1 p-6 space-y-2">
+              <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
                 {menuItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    onClick={toggleSidebar}
-                    className={`flex items-center gap-3 px-5 py-4 rounded-xl ${
-                      location.pathname === item.path
-                        ? "bg-indigo-50 text-indigo-700 font-bold"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <span className="text-base">{item.name}</span>
-                  </Link>
+                  <div key={item.name}>
+                    {item.subItems ? (
+                      <>
+                        <button
+                          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                          className={`w-full flex items-center justify-between px-5 py-4 rounded-xl transition-colors ${
+                            item.subItems.some(sub => location.pathname === sub.path.split('?')[0])
+                              ? "bg-slate-100 text-slate-900 font-bold"
+                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{item.icon}</span>
+                            <span className="text-base">{item.name}</span>
+                          </div>
+                          <FiChevronDown className={`transition-transform duration-300 ${isSettingsOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        <AnimatePresence>
+                          {isSettingsOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden pl-12 mt-1 space-y-1"
+                            >
+                              {item.subItems.map((subItem) => {
+                                const isActive = subItem.path.includes('?') 
+                                  ? location.search.includes(subItem.path.split('?')[1]) || (location.pathname === "/dashboard/settings" && !location.search && subItem.path.includes("tab=roles"))
+                                  : location.pathname === subItem.path;
+                                  
+                                return (
+                                  <Link
+                                    key={subItem.name}
+                                    to={subItem.path}
+                                    onClick={toggleSidebar}
+                                    className={`block py-3 px-4 text-sm font-medium transition-all ${
+                                      isActive
+                                        ? "border-l-[3px] border-slate-800 text-slate-900 bg-slate-50/80 font-bold" 
+                                        : "border-l-[3px] border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50/50"
+                                    }`}
+                                  >
+                                    {subItem.name}
+                                  </Link>
+                                );
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </>
+                    ) : (
+                      <Link
+                        to={item.path}
+                        onClick={toggleSidebar}
+                        className={`flex items-center gap-3 px-5 py-4 rounded-xl transition-colors ${
+                          location.pathname === item.path
+                            ? "bg-slate-100 text-slate-900 font-bold"
+                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                        }`}
+                      >
+                        <span className="text-xl">{item.icon}</span>
+                        <span className="text-base">{item.name}</span>
+                      </Link>
+                    )}
+                  </div>
                 ))}
               </nav>
             </motion.aside>
@@ -166,13 +333,6 @@ const Layout = () => {
             <button
               onClick={toggleSidebar}
               className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <FiMenu size={24} />
-            </button>
-            {/* Desktop Sidebar Toggle */}
-            <button
-              onClick={() => setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed)}
-              className="hidden lg:block p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
             >
               <FiMenu size={24} />
             </button>

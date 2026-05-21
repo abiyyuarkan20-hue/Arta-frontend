@@ -1,23 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
-  FiUser, FiMail, FiPhone, FiBriefcase, FiMapPin,
+  FiUser, FiMail, FiPhone, FiBriefcase,
   FiCamera, FiSave, FiCheck, FiLoader, FiEdit3,
-  FiShield, FiStar, FiCalendar, FiTrendingUp
+  FiShield, FiCalendar, FiTrendingUp, FiKey, FiEye, FiEyeOff, FiX
 } from "react-icons/fi";
 
-const businessCategories = [
-  "Kuliner & Makanan",
-  "Fashion & Pakaian",
-  "Perdagangan Umum",
-  "Jasa & Layanan",
-  "Teknologi & Digital",
-  "Pertanian & Perkebunan",
-  "Kesehatan & Kecantikan",
-  "Pendidikan",
-  "Otomotif",
-  "Lainnya",
-];
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -85,12 +74,36 @@ export default function Profile() {
     namaLengkap: "",
     email: "",
     telepon: "",
-    namaUsaha: "",
-    kategoriUsaha: "",
-    alamatUsaha: "",
     bio: "",
     joinDate: "Mei 2026",
   });
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+    setPasswordError("");
+  };
+
+  const pwdCriteria = {
+    length: passwordData.newPassword.length >= 8,
+    uppercase: /[A-Z]/.test(passwordData.newPassword),
+    number: /\d/.test(passwordData.newPassword),
+  };
+  const isPasswordMatch =
+    passwordData.confirmNewPassword.length > 0 &&
+    passwordData.newPassword === passwordData.confirmNewPassword;
+  const isConfirmPasswordInvalid =
+    passwordData.confirmNewPassword.length > 0 &&
+    passwordData.newPassword !== passwordData.confirmNewPassword;
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -102,10 +115,7 @@ export default function Profile() {
           ...prev,
           namaLengkap: user?.user_metadata?.nama_lengkap || "",
           email: user?.email || "",
-          namaUsaha: user?.user_metadata?.nama_usaha || "",
           telepon: user?.user_metadata?.telepon || "",
-          kategoriUsaha: user?.user_metadata?.kategori_usaha || "",
-          alamatUsaha: user?.user_metadata?.alamat_usaha || "",
           bio: user?.user_metadata?.bio || "",
         }));
         if (user?.user_metadata?.avatar) {
@@ -130,6 +140,22 @@ export default function Profile() {
     setProfile((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSave = () => {
+    // Simulasi validasi password (UI prototype)
+    if (passwordData.oldPassword || passwordData.newPassword || passwordData.confirmNewPassword) {
+      if (passwordData.oldPassword !== "admin123") { // Dummy password lama untuk demo UI
+        setPasswordError("Password yang Anda masukkan salah");
+        return;
+      }
+      if (!pwdCriteria.length || !pwdCriteria.uppercase || !pwdCriteria.number) {
+        setPasswordError("Password baru tidak memenuhi semua kriteria");
+        return;
+      }
+      if (!isPasswordMatch) {
+        setPasswordError("Password baru dan konfirmasi tidak cocok");
+        return;
+      }
+    }
+
     if (saveStatus === "saving") return;
     setSaveStatus("saving");
 
@@ -145,9 +171,6 @@ export default function Profile() {
             ...user.user_metadata,
             nama_lengkap: profile.namaLengkap,
             telepon: profile.telepon,
-            nama_usaha: profile.namaUsaha,
-            kategori_usaha: profile.kategoriUsaha,
-            alamat_usaha: profile.alamatUsaha,
             bio: profile.bio,
             ...(avatarPreview ? { avatar: avatarPreview } : {}),
           },
@@ -170,9 +193,6 @@ export default function Profile() {
     profile.namaLengkap,
     profile.email,
     profile.telepon,
-    profile.namaUsaha,
-    profile.kategoriUsaha,
-    profile.alamatUsaha,
   ];
   const completionPercent = Math.round(
     (completionFields.filter(Boolean).length / completionFields.length) * 100
@@ -258,9 +278,6 @@ export default function Profile() {
                     { label: "Nama", filled: !!profile.namaLengkap },
                     { label: "Email", filled: !!profile.email },
                     { label: "Telepon", filled: !!profile.telepon },
-                    { label: "Usaha", filled: !!profile.namaUsaha },
-                    { label: "Kategori", filled: !!profile.kategoriUsaha },
-                    { label: "Alamat", filled: !!profile.alamatUsaha },
                   ].map(({ label, filled }) => (
                     <span
                       key={label}
@@ -364,58 +381,121 @@ export default function Profile() {
             </div>
           </motion.div>
 
-          {/* Business Info Card */}
+          {/* Change Password Card */}
           <motion.div variants={cardVariants} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-sm shadow-purple-500/30">
-                <FiBriefcase size={15} className="text-white" strokeWidth={2.5} />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center shadow-sm shadow-orange-500/30">
+                <FiKey size={15} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-slate-800">Informasi Usaha</h3>
-                <p className="text-xs text-slate-500 font-medium">Data usaha Anda di platform Artha</p>
+                <h3 className="text-sm font-black text-slate-800">Keamanan Akun</h3>
+                <p className="text-xs text-slate-500 font-medium">Perbarui kata sandi Anda</p>
               </div>
             </div>
 
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="sm:col-span-2">
-                <FormInput
-                  label="Nama Usaha"
-                  icon={FiBriefcase}
-                  value={profile.namaUsaha}
-                  onChange={handleChange("namaUsaha")}
-                  placeholder="Masukkan nama usaha Anda"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <FormSelect
-                  label="Kategori Usaha"
-                  icon={FiStar}
-                  value={profile.kategoriUsaha}
-                  onChange={handleChange("kategoriUsaha")}
-                  options={businessCategories}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <FiMapPin size={11} />
-                    Alamat Usaha
-                  </label>
-                  <textarea
-                    value={profile.alamatUsaha}
-                    onChange={handleChange("alamatUsaha")}
-                    placeholder="Masukkan alamat lengkap usaha Anda..."
-                    rows={3}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white
-                      transition-all duration-200 shadow-sm focus:shadow-md focus:shadow-indigo-500/10 resize-none"
+            <div className="p-6 space-y-5">
+              {/* Old Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Kata Sandi Lama
+                </label>
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? "text" : "password"}
+                    name="oldPassword"
+                    value={passwordData.oldPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${passwordError === "Password yang Anda masukkan salah" ? 'border-red-400 focus:ring-red-400 focus:bg-red-50/50' : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}
+                    placeholder="Masukkan kata sandi saat ini"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                  >
+                    {showOldPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                  </button>
                 </div>
+                {passwordError === "Password yang Anda masukkan salah" && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{passwordError}</p>
+                )}
+                {/* Note for dummy UI */}
+                <p className="text-[10px] text-slate-400 italic mt-1">*Demo: ketik 'admin123' agar benar</p>
+              </div>
+
+              {/* New Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Kata Sandi Baru
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
+                    placeholder="Masukkan kata sandi baru"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                  >
+                    {showNewPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                  </button>
+                </div>
+                {passwordData.newPassword.length > 0 && (
+                  <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      {pwdCriteria.length ? <FiCheck size={14} className="text-emerald-500" /> : <FiX size={14} className="text-slate-300" />}
+                      <span className={pwdCriteria.length ? "text-emerald-600 font-medium" : "text-slate-500"}>Minimal 8 karakter</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {pwdCriteria.uppercase ? <FiCheck size={14} className="text-emerald-500" /> : <FiX size={14} className="text-slate-300" />}
+                      <span className={pwdCriteria.uppercase ? "text-emerald-600 font-medium" : "text-slate-500"}>Mengandung huruf besar</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {pwdCriteria.number ? <FiCheck size={14} className="text-emerald-500" /> : <FiX size={14} className="text-slate-300" />}
+                      <span className={pwdCriteria.number ? "text-emerald-600 font-medium" : "text-slate-500"}>Mengandung angka</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Confirm New Password */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Konfirmasi Kata Sandi Baru
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmNewPassword ? "text" : "password"}
+                    name="confirmNewPassword"
+                    value={passwordData.confirmNewPassword}
+                    onChange={handlePasswordChange}
+                    className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${isConfirmPasswordInvalid ? "border-red-400 focus:ring-red-400 focus:bg-red-50/50" : isPasswordMatch ? "border-emerald-400 focus:ring-emerald-400 focus:bg-emerald-50/50" : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500"} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}
+                    placeholder="Ulangi kata sandi baru"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                  >
+                    {showConfirmNewPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                  </button>
+                </div>
+                {isConfirmPasswordInvalid && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">Kata sandi tidak cocok</p>
+                )}
+                {isPasswordMatch && (
+                  <p className="text-xs text-emerald-600 mt-1 font-medium">Kata sandi cocok</p>
+                )}
               </div>
             </div>
           </motion.div>
 
-          {/* Save Button */}
+{/* Save Button */}
           <motion.div variants={cardVariants} className="flex items-center justify-end">
             <button
               onClick={handleSave}

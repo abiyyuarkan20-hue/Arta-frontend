@@ -25,10 +25,6 @@ import iconTrend from "../assets/icons/trend.png";
 import iconRealTime from "../assets/icons/real-time.png";
 import iconPerintis from "../assets/icons/perintis.png";
 import iconPengusaha from "../assets/icons/pengusaha.png";
-import iconWeb from "../assets/icons/web.png";
-import iconPhone from "../assets/icons/phone.png";
-import iconEmail from "../assets/icons/email.png";
-import iconMessage from "../assets/icons/message.png";
 import {
   FiX,
   FiCheck,
@@ -47,11 +43,8 @@ import {
   FiDownload,
   FiPackage,
   FiHelpCircle,
-  FiTwitter,
-  FiLinkedin,
-  FiInstagram,
-  FiYoutube,
 } from "react-icons/fi";
+import { FaTwitter, FaLinkedin, FaInstagram, FaYoutube } from "react-icons/fa";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -1997,9 +1990,15 @@ const Landing = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
-                className="w-14 h-14 bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center mb-8 shadow-xl shadow-indigo-500/10 p-3"
+                className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-500 rounded-2xl flex items-center justify-center mb-8 shadow-xl shadow-indigo-600/20"
               >
-                <img src={iconMessage} alt="Message" className="w-full h-full object-contain filter brightness-120 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-7 h-7 text-white fill-none stroke-current stroke-[1.5]"
+                >
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
               </motion.div>
 
               {/* Heading */}
@@ -2019,11 +2018,9 @@ const Landing = () => {
                 <motion.a
                   href="mailto:contact@konsulkeu.id"
                   whileHover={{ scale: 1.03 }}
-                  className="flex items-center gap-3 text-slate-300 hover:text-white transition-all group bg-white/[0.02] border border-white/5 pl-2 pr-5 py-1.5 rounded-2xl hover:bg-white/[0.05] hover:border-white/10 hover:shadow-[0_0_20px_rgba(99,102,241,0.1)]"
+                  className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors group"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 p-1.5 transition-all duration-300 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/40 group-hover:scale-105 shadow-md shadow-indigo-500/5">
-                    <img src={iconWeb} alt="Web" className="w-full h-full object-contain filter brightness-110" />
-                  </div>
+                  <div className="w-2 h-2 rounded-full bg-indigo-500 group-hover:shadow-[0_0_12px_rgba(99,102,241,0.6)] transition-shadow"></div>
                   <span className="text-sm font-semibold">
                     contact@konsulkeu.id
                   </span>
@@ -2031,23 +2028,19 @@ const Landing = () => {
                 <motion.a
                   href="tel:+6281234567890"
                   whileHover={{ scale: 1.03 }}
-                  className="flex items-center gap-3 text-slate-300 hover:text-white transition-all group bg-white/[0.02] border border-white/5 pl-2 pr-5 py-1.5 rounded-2xl hover:bg-white/[0.05] hover:border-white/10 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                  className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors group"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 p-1.5 transition-all duration-300 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/40 group-hover:scale-105 shadow-md shadow-emerald-500/5">
-                    <img src={iconPhone} alt="Phone" className="w-full h-full object-contain filter brightness-110" />
-                  </div>
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 group-hover:shadow-[0_0_12px_rgba(16,185,129,0.6)] transition-shadow"></div>
                   <span className="text-sm font-semibold">
                     +62 (812) 3456 7890
                   </span>
                 </motion.a>
                 <motion.a
-                  href="mailto:support@gmail.com"
+                  href="mailto:support@konsulkeu.id"
                   whileHover={{ scale: 1.03 }}
-                  className="flex items-center gap-3 text-slate-300 hover:text-white transition-all group bg-white/[0.02] border border-white/5 pl-2 pr-5 py-1.5 rounded-2xl hover:bg-white/[0.05] hover:border-white/10 hover:shadow-[0_0_20px_rgba(168,85,247,0.1)]"
+                  className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors group"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 p-1.5 transition-all duration-300 group-hover:bg-purple-500/20 group-hover:border-purple-500/40 group-hover:scale-105 shadow-md shadow-purple-500/5">
-                    <img src={iconEmail} alt="Email" className="w-full h-full object-contain filter brightness-110" />
-                  </div>
+                  <div className="w-2 h-2 rounded-full bg-purple-500 group-hover:shadow-[0_0_12px_rgba(168,85,247,0.6)] transition-shadow"></div>
                   <span className="text-sm font-semibold">
                     support@gmail.com
                   </span>
@@ -2471,23 +2464,21 @@ const Landing = () => {
               {/* Social Media Links */}
               <div className="flex gap-4">
                 {[
-                  { name: "Twitter", icon: FiTwitter, color: "hover:text-sky-400 hover:border-sky-500/30 hover:bg-sky-500/5 hover:shadow-[0_0_15px_rgba(56,189,248,0.15)]" },
-                  { name: "LinkedIn", icon: FiLinkedin, color: "hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)]" },
-                  { name: "Instagram", icon: FiInstagram, color: "hover:text-pink-400 hover:border-pink-500/30 hover:bg-pink-500/5 hover:shadow-[0_0_15px_rgba(236,72,153,0.15)]" },
-                  { name: "YouTube", icon: FiYoutube, color: "hover:text-red-500 hover:border-red-500/30 hover:bg-red-500/5 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)]" }
-                ].map((social) => {
-                  const Icon = social.icon;
-                  return (
+                  { name: "Twitter", icon: <FaTwitter size={18} /> },
+                  { name: "LinkedIn", icon: <FaLinkedin size={18} /> },
+                  { name: "Instagram", icon: <FaInstagram size={18} /> },
+                  { name: "YouTube", icon: <FaYoutube size={18} /> }
+                ].map(
+                  (social) => (
                     <a
                       key={social.name}
                       href="#"
-                      aria-label={social.name}
-                      className={`w-10 h-10 rounded-full bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-400 transition-all duration-300 ${social.color}`}
+                      className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
                     >
-                      <Icon className="w-4 h-4 transition-transform duration-300 hover:scale-110" />
+                      {social.icon}
                     </a>
-                  );
-                })}
+                  ),
+                )}
               </div>
             </div>
 
@@ -2606,10 +2597,16 @@ const Landing = () => {
         </div>
 
         {/* Copyright */}
-        <div className="container mx-auto px-6 lg:px-12 pt-8 flex flex-col md:flex-row items-center justify-center gap-4 relative z-10">
-          <p className="text-slate-500 text-sm font-medium text-center">
+        <div className="container mx-auto px-6 lg:px-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+          <p className="text-slate-500 text-sm font-medium">
             © {new Date().getFullYear()} Arta Inc. All rights reserved.
           </p>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-slate-500 text-sm font-medium">
+              Sistem Beroperasi Normal
+            </span>
+          </div>
         </div>
       </footer>
 
