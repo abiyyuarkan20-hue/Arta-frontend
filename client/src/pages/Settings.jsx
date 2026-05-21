@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { 
-  FiShield, FiPlus, FiEdit2, FiKey,
+  FiShield, FiPlus, FiEdit2, FiKey, FiTrash2, FiUser, FiX,
   FiBriefcase, FiMapPin, FiTag, FiSave, FiCheck, FiLoader,
   FiPhone, FiMail, FiGlobe, FiUsers, FiCalendar, FiFileText,
   FiInstagram, FiCreditCard, FiHash
@@ -150,54 +150,6 @@ const Settings = () => {
         <div className="flex-1">
           {activeTab === "roles" && (
             <div className="space-y-6">
-              
-              {/* Banner Info Hak Akses (Khusus Owner) */}
-              <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-                <div className="flex items-start gap-4 relative z-10">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0 border border-white/20">
-                    <FiKey size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black mb-1">Akses Spesial: Owner</h3>
-                    <p className="text-indigo-100 text-sm leading-relaxed max-w-2xl">
-                      Anda saat ini login sebagai <strong>Owner</strong>. Hanya Owner yang dapat menambah, mengubah, dan menghapus akun Admin atau User lainnya untuk mengelola sistem kasir ini.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Box Hak Akses Penjelasan */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-800">Hierarki Hak Akses (Roles)</h3>
-                </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {Object.keys(ROLE_PERMISSIONS).map(role => (
-                    <div key={role} className="border border-slate-100 bg-slate-50 rounded-xl p-5">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className={`px-3 py-1 text-xs font-black rounded-lg uppercase tracking-wider ${
-                          role === 'Owner' ? 'bg-indigo-100 text-indigo-700' :
-                          role === 'Admin' ? 'bg-amber-100 text-amber-700' :
-                          'bg-emerald-100 text-emerald-700'
-                        }`}>
-                          {role}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-slate-600 mb-4 h-10">{ROLE_PERMISSIONS[role].desc}</p>
-                      <ul className="space-y-2">
-                        {ROLE_PERMISSIONS[role].permissions.map((perm, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-xs text-slate-500 font-medium">
-                            <FiCheckCircle className="text-indigo-400 mt-0.5 shrink-0" />
-                            {perm}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Tabel User */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -253,9 +205,14 @@ const Settings = () => {
                           </td>
                           <td className="px-6 py-4 text-right">
                             {user.role !== "Owner" && (
-                              <button className="text-slate-400 hover:text-indigo-600 transition-colors p-2">
-                                <FiEdit2 size={16} />
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <button className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-lg hover:bg-indigo-50" title="Edit Akses">
+                                  <FiEdit2 size={16} />
+                                </button>
+                                <button className="text-slate-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50" title="Hapus Akses">
+                                  <FiTrash2 size={16} />
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -489,66 +446,85 @@ const Settings = () => {
       {/* Modal Tambah Akses (UI Prototype) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 animate-fade-in-up">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 text-lg">Buat Akun Akses Baru</h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-red-500 p-1">✕</button>
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsAddModalOpen(false)}></div>
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-fade-in-up">
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                  <FiUsers className="text-white" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-lg">Buat Akses Baru</h3>
+                  <p className="text-indigo-100 text-xs font-medium mt-0.5">Tambahkan anggota tim ke sistem</p>
+                </div>
+              </div>
+              <button onClick={() => setIsAddModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+                <FiX size={16} strokeWidth={3} />
+              </button>
             </div>
             
-            <form onSubmit={handleAddSubmit} className="p-6 space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Nama Lengkap</label>
+            <form onSubmit={handleAddSubmit} className="p-7 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <FiUser size={11} /> Nama Lengkap
+                </label>
                 <input 
                   type="text" 
                   required
                   value={newUserData.name}
                   onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
-                  placeholder="Ketik nama karyawan..."
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
+                  placeholder="Contoh: Budi Santoso"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
                 />
               </div>
               
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Email Karyawan</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <FiMail size={11} /> Email Karyawan
+                </label>
                 <input 
                   type="email" 
                   required
                   value={newUserData.email}
                   onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
-                  placeholder="email@perusahaan.com"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
+                  placeholder="budi@perusahaan.com"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pilih Role</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <FiShield size={11} /> Pilih Role
+                </label>
                 <select 
                   value={newUserData.role}
                   onChange={(e) => setNewUserData({...newUserData, role: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium bg-white"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm appearance-none cursor-pointer"
                 >
                   <option value="Admin">Admin (Akses Menengah)</option>
                   <option value="User">User (Hanya Lihat Data)</option>
                 </select>
-                <p className="text-[11px] text-slate-400 font-medium mt-2">
-                  *Sebagai Owner, hanya Anda yang dapat mengontrol akses ini.
-                </p>
+                <div className="flex items-start gap-1.5 mt-2 p-3 bg-indigo-50 rounded-xl">
+                  <FiKey className="text-indigo-500 mt-0.5 shrink-0" size={14} />
+                  <p className="text-[11px] text-indigo-700 font-medium leading-relaxed">
+                    Sebagai Owner, hanya Anda yang dapat mengontrol hak akses ini.
+                  </p>
+                </div>
               </div>
 
-              <div className="pt-4 flex gap-3">
+              <div className="pt-2 flex gap-3">
                 <button 
                   type="button" 
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >
                   Batal
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 py-3 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20"
+                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95"
                 >
-                  Buat Akun
+                  Simpan Akun
                 </button>
               </div>
             </form>
