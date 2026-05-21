@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 import { 
   FiTrendingUp, FiArrowUpRight, FiArrowDownRight, FiPieChart, 
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [profile, setProfile] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -107,14 +109,14 @@ const Dashboard = () => {
     <div className="max-w-7xl mx-auto space-y-6 pb-12 animate-fade-in">
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Overview Bisnis</h1>
-          <p className="text-slate-500 font-medium mt-1">Selamat datang kembali, {firstName}. Berikut ringkasan performa <strong>{profile?.nama_usaha || "usaha Anda"}</strong>.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{t("dashboard.business_overview")}</h1>
+          <p className="text-slate-500 font-medium mt-1">{t("dashboard.welcome_message", { name: firstName })}</p>
         </div>
         <Link 
           to="/dashboard/transactions"
           className="px-6 py-3 bg-[#111111] text-white rounded-xl text-sm font-bold tracking-widest hover:bg-black transition-all shadow-xl shadow-black/10 active:scale-95"
         >
-          + CATAT TRANSAKSI BARU
+          + {t("dashboard.record_new_transaction")}
         </Link>
       </div>
 
@@ -122,7 +124,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-          <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">Pemasukan (Bulan Ini)</p>
+          <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">{t("dashboard.income_this_month")}</p>
           <h3 className="text-3xl font-black text-slate-800 mb-4 relative z-10">{formatRupiah(13100000)}</h3>
           <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 w-fit px-3 py-1.5 rounded-lg relative z-10">
             <FiArrowUpRight size={14} /> 12% dari bulan lalu
@@ -131,7 +133,7 @@ const Dashboard = () => {
         
         <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-rose-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-          <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">Pengeluaran (Bulan Ini)</p>
+          <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">{t("dashboard.expense_this_month")}</p>
           <h3 className="text-3xl font-black text-slate-800 mb-4 relative z-10">{formatRupiah(5500000)}</h3>
           <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 w-fit px-3 py-1.5 rounded-lg relative z-10">
             <FiArrowDownRight size={14} /> 3% dari bulan lalu
@@ -140,10 +142,10 @@ const Dashboard = () => {
 
         <div className="bg-[#0B1221] p-8 rounded-[2rem] shadow-2xl relative overflow-hidden text-white">
           <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 opacity-20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-          <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">Laba Bersih</p>
+          <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">{t("dashboard.net_profit")}</p>
           <h3 className="text-3xl font-black mb-4 relative z-10 text-white">{formatRupiah(7600000)}</h3>
           <div className="flex items-center gap-2 text-xs font-bold text-teal-400 bg-teal-400/10 border border-teal-400/20 w-fit px-3 py-1.5 rounded-lg relative z-10">
-            <FiActivity size={14} /> Status: Sangat Sehat
+            <FiActivity size={14} /> {t("dashboard.status_healthy")}
           </div>
         </div>
       </div>

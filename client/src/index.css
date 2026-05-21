@@ -79,3 +79,13 @@
     @apply bg-gradient-to-r from-primary-600 to-emerald-500 bg-clip-text text-transparent;
   }
 }
+
+/* 6. Dark Mode UI Prototype Filter Hack */
+html.dark-mode {
+  filter: invert(1) hue-rotate(180deg);
+}
+html.dark-mode img, 
+html.dark-mode video, 
+html.dark-mode iframe {
+  filter: invert(1) hue-rotate(180deg);
+}

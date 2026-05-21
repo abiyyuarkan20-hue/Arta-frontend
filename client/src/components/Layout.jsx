@@ -10,10 +10,14 @@ import {
   FiUser,
   FiLogOut,
   FiUserCheck,
-  FiTrendingUp
+  FiTrendingUp,
+  FiMoon,
+  FiSun,
+  FiGlobe
 } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import logoImg from "../assets/logo.png";
 
 const Layout = () => {
@@ -24,6 +28,29 @@ const Layout = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  
+  // UI States (Dummy)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains("dark-mode");
+  });
+  const [language, setLanguage] = useState("ID");
+
+  const toggleDarkMode = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("dark-mode");
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add("dark-mode");
+      setIsDarkMode(true);
+    }
+  };
+
+  const { t, i18n } = useTranslation();
+
+  const handleLanguageChange = () => {
+    const newLang = i18n.language === "ID" ? "EN" : "ID";
+    i18n.changeLanguage(newLang);
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -53,12 +80,12 @@ const Layout = () => {
 
   const menuItems = userType === "umkm_aktif" 
     ? [
-        { name: "Dashboard", path: "/dashboard", icon: <FiHome /> },
-        { name: "Transaksi", path: "/dashboard/transactions", icon: <FiList /> },
-        { name: "Laporan", path: "/dashboard/reports", icon: <FiPieChart /> },
-        { name: "Prediksi AI", path: "/dashboard/forecasting", icon: <FiTrendingUp /> },
+        { name: t("menu.dashboard"), path: "/dashboard", icon: <FiHome /> },
+        { name: t("menu.transactions"), path: "/dashboard/transactions", icon: <FiList /> },
+        { name: t("menu.reports"), path: "/dashboard/reports", icon: <FiPieChart /> },
+        { name: t("menu.ai_prediction"), path: "/dashboard/forecasting", icon: <FiTrendingUp /> },
         { 
-          name: "Pengaturan", 
+          name: t("menu.settings"), 
           icon: <FiSettings />,
           subItems: [
             { name: "Profil Akun", path: "/dashboard/profile" },
@@ -68,16 +95,15 @@ const Layout = () => {
         },
       ]
     : [
-        { name: "Dashboard", path: "/dashboard", icon: <FiHome /> },
+        { name: t("menu.dashboard"), path: "/dashboard", icon: <FiHome /> },
         // Calon pengusaha tidak punya Transaksi & Laporan, tapi Rekomendasi
         { name: "Rekomendasi Bisnis", path: "/dashboard/recommendations", icon: <FiPieChart /> },
         { 
-          name: "Pengaturan", 
+          name: t("menu.settings"), 
           icon: <FiSettings />,
           subItems: [
             { name: "Profil Akun", path: "/dashboard/profile" },
-            { name: "Profil Usaha", path: "/dashboard/settings?tab=profile" },
-            { name: "Manajemen Role", path: "/dashboard/settings?tab=roles" }
+            { name: "Kuesioner Bisnis", path: "/dashboard/settings?tab=questionnaire" }
           ]
         },
       ];
@@ -337,13 +363,13 @@ const Layout = () => {
               <FiMenu size={24} />
             </button>
             <div className="hidden lg:flex flex-col justify-center">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Welcome Back</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{t("header.welcome_back")}</p>
               <h2 className="text-base font-black text-slate-800 tracking-tight leading-none">
-                Halo, <span className="text-indigo-600">{fullName}</span>
+                {t("header.hello")}, <span className="text-indigo-600">{fullName}</span>
               </h2>
             </div>
             <h2 className="text-lg font-bold text-slate-800 lg:hidden">
-              Dashboard
+              {t("menu.dashboard")}
             </h2>
           </div>
 
@@ -361,7 +387,7 @@ const Layout = () => {
                 </span>
                 <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  Online
+                  {t("header.online")}
                 </span>
               </div>
               <FiChevronDown className={`hidden sm:block text-slate-400 transition-transform ${isProfileOpen ? "rotate-180" : ""}`} />
@@ -388,31 +414,40 @@ const Layout = () => {
                     </div>
                     
                     <div className="p-2 space-y-1">
-                      <Link 
-                        to="/dashboard/profile" 
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                      <button 
+                        onClick={toggleDarkMode}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
                       >
-                        <FiUser size={16} />
-                        <span>Profil Saya</span>
-                      </Link>
-                      <Link 
-                        to="/dashboard/settings" 
-                        onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                        <div className="flex items-center gap-3">
+                          {isDarkMode ? <FiMoon size={16} /> : <FiSun size={16} />}
+                          <span>{isDarkMode ? t("header.dark_mode") : t("header.light_mode")}</span>
+                        </div>
+                        <div className={`w-8 h-4 rounded-full transition-colors relative ${isDarkMode ? 'bg-indigo-500' : 'bg-slate-300'}`}>
+                          <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${isDarkMode ? 'left-4.5' : 'left-0.5'}`} style={{ left: isDarkMode ? '14px' : '2px' }}></div>
+                        </div>
+                      </button>
+                      
+                      <button 
+                        onClick={handleLanguageChange}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
                       >
-                        <FiSettings size={16} />
-                        <span>Pengaturan Akun</span>
-                      </Link>
+                        <div className="flex items-center gap-3">
+                          <FiGlobe size={16} />
+                          <span>{t("header.language")}</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors ${i18n.language === "ID" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"}`}>ID</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors ${i18n.language === "EN" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400"}`}>EN</span>
+                        </div>
+                      </button>
                     </div>
-                    
                     <div className="p-2 border-t border-slate-50 mt-1">
                       <button 
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
                       >
                         <FiLogOut size={16} />
-                        <span>Keluar Akun</span>
+                        <span>{t("header.logout")}</span>
                       </button>
                     </div>
                   </motion.div>
