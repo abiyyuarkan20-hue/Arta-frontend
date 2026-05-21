@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { FiTrendingUp, FiAlertTriangle, FiCpu, FiCalendar } from "react-icons/fi";
 
 const formatRp = (num) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num);
 
 export default function Forecasting() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [forecastData, setForecastData] = useState([]);
-  const [insight, setInsight] = useState("");
 
   useEffect(() => {
     // Simulasi memanggil Microservice FastAPI tim AI
@@ -29,7 +30,6 @@ export default function Forecasting() {
         ];
 
         setForecastData(mockData);
-        setInsight("Tren pendapatan diprediksi akan mengalami lonjakan pada akhir bulan Juni (25-30 Jun). Disarankan untuk menambah stok Bahan Baku pada pertengahan bulan untuk mengantisipasi lonjakan permintaan.");
         setLoading(false);
       } catch (err) {
         console.error("Gagal mengambil prediksi AI");
@@ -44,11 +44,11 @@ export default function Forecasting() {
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Prediksi AI (Forecasting)</h1>
-          <p className="text-slate-500 font-medium mt-1">Analisis Time-Series cerdas untuk memproyeksikan arus kas masa depan.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{t('forecasting.title')}</h1>
+          <p className="text-slate-500 font-medium mt-1">{t('forecasting.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100 shadow-sm">
-          <FiCpu className="animate-pulse" /> Model AI Aktif (LSTM)
+          <FiCpu className="animate-pulse" /> {t('forecasting.active_model')}
         </div>
       </div>
 
@@ -67,8 +67,8 @@ export default function Forecasting() {
               <FiTrendingUp size={24} />
             </div>
             <div className="relative z-10">
-              <h3 className="font-black text-lg mb-1">Rekomendasi Strategis AI</h3>
-              <p className="text-indigo-100 font-medium leading-relaxed">{insight}</p>
+              <h3 className="font-black text-lg mb-1">{t('forecasting.ai_strategy')}</h3>
+              <p className="text-indigo-100 font-medium leading-relaxed">{t('forecasting.ai_strategy_desc')}</p>
             </div>
           </div>
 
@@ -80,8 +80,8 @@ export default function Forecasting() {
                     <FiCalendar size={20} />
                   </div>
                   <div>
-                    <h3 className="font-black text-slate-800">Proyeksi Pemasukan Juni 2026</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Confidence Interval 85%</p>
+                    <h3 className="font-black text-slate-800">{t('forecasting.projection_chart_title')}</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('forecasting.confidence_interval')}</p>
                   </div>
                 </div>
                 
@@ -89,11 +89,11 @@ export default function Forecasting() {
                 <div className="flex items-center gap-4 text-sm font-bold">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                    <span className="text-slate-600">Data Aktual</span>
+                    <span className="text-slate-600">{t('forecasting.actual_data')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
-                    <span className="text-slate-600">Prediksi AI</span>
+                    <span className="text-slate-600">{t('forecasting.ai_prediction')}</span>
                   </div>
                 </div>
              </div>
@@ -127,7 +127,7 @@ export default function Forecasting() {
                     />
                     
                     {/* Garis vertikal pembatas Masa Lalu & Prediksi (10 Jun) */}
-                    <ReferenceLine x="10 Jun" stroke="#cbd5e1" strokeDasharray="5 5" label={{ position: 'top', value: 'Hari Ini', fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} />
+                    <ReferenceLine x="10 Jun" stroke="#cbd5e1" strokeDasharray="5 5" label={{ position: 'top', value: t('forecasting.today'), fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} />
                     
                     <Area 
                       type="monotone" 
@@ -153,7 +153,7 @@ export default function Forecasting() {
 
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-700 px-5 py-4 rounded-xl mt-6">
              <FiAlertTriangle size={20} className="shrink-0" />
-             <p className="text-sm font-medium">Prediksi ini didasarkan pada model matematis dari data historis Anda. Faktor eksternal seperti kondisi ekonomi atau cuaca tidak sepenuhnya dihitung.</p>
+             <p className="text-sm font-medium">{t('forecasting.disclaimer')}</p>
           </div>
         </>
       )}

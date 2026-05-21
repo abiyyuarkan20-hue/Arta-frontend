@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { 
   FiDownload, FiArrowUpRight, FiArrowDownRight, FiPieChart, 
   FiTrendingUp, FiZap, FiFileText
@@ -36,6 +37,7 @@ const categoryColors = {
 };
 
 export default function Reports() {
+  const { t } = useTranslation();
   const [dateRange, setDateRange] = useState("This Month");
 
   // Format currency
@@ -260,8 +262,8 @@ export default function Reports() {
       {/* 1. Header & Actions */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800">Laporan Keuangan</h1>
-          <p className="text-slate-500 font-medium mt-1">Ringkasan dan analisis performa bisnis Anda.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800">{t('reports.title')}</h1>
+          <p className="text-slate-500 font-medium mt-1">{t('reports.subtitle')}</p>
         </div>
         
         <div className="flex items-center gap-3 w-full md:w-auto">
@@ -270,7 +272,7 @@ export default function Reports() {
             onChange={(e) => setDateRange(e.target.value)}
             className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none cursor-pointer shadow-sm"
           >
-            <option value="This Month">Bulan Ini</option>
+            <option value="This Month">{t('reports.this_month')}</option>
             <option value="Last Month">Bulan Lalu</option>
             <option value="Last 7 Days">7 Hari Terakhir</option>
             <option value="This Year">Tahun Ini</option>
@@ -281,7 +283,7 @@ export default function Reports() {
             className="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
           >
             <FiFileText />
-            <span className="hidden sm:inline">Export Excel</span>
+            <span className="hidden sm:inline">{t('reports.export_excel')}</span>
           </button>
           
           <button 
@@ -289,7 +291,7 @@ export default function Reports() {
             className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-black hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
           >
             <FiDownload size={16} />
-            <span className="hidden sm:inline">Download PDF</span>
+            <span className="hidden sm:inline">{t('reports.download_pdf')}</span>
           </button>
         </div>
       </div>
@@ -299,11 +301,11 @@ export default function Reports() {
         {/* Income */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-sm font-bold text-slate-500 mb-1">Total Pemasukan</p>
+            <p className="text-sm font-bold text-slate-500 mb-1">{t('reports.total_income')}</p>
             <h3 className="text-3xl font-black text-emerald-600 mb-2">{formatRupiah(metrics.income)}</h3>
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 w-fit px-2 py-1 rounded-md">
               <FiTrendingUp />
-              <span>+12.5% vs bulan lalu</span>
+              <span>+12.5% {t('reports.vs_last_month')}</span>
             </div>
           </div>
           <div className="absolute right-[-20px] bottom-[-20px] text-emerald-50 opacity-50 pointer-events-none">
@@ -314,11 +316,11 @@ export default function Reports() {
         {/* Expense */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-sm font-bold text-slate-500 mb-1">Total Pengeluaran</p>
+            <p className="text-sm font-bold text-slate-500 mb-1">{t('reports.total_expense')}</p>
             <h3 className="text-3xl font-black text-rose-600 mb-2">{formatRupiah(metrics.expense)}</h3>
             <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 w-fit px-2 py-1 rounded-md">
               <FiTrendingUp />
-              <span>+3.2% vs bulan lalu</span>
+              <span>+3.2% {t('reports.vs_last_month')}</span>
             </div>
           </div>
           <div className="absolute right-[-20px] bottom-[-20px] text-rose-50 opacity-50 pointer-events-none">
@@ -330,9 +332,9 @@ export default function Reports() {
         <div className="bg-indigo-600 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden text-white border border-indigo-500">
           <div className="absolute top-0 right-0 w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,#fff,transparent_60%)] pointer-events-none"></div>
           <div className="relative z-10">
-            <p className="text-sm font-semibold text-indigo-100 mb-1">Laba Bersih (Profit)</p>
+            <p className="text-sm font-semibold text-indigo-100 mb-1">{t('reports.net_profit')}</p>
             <h3 className="text-3xl font-black mb-2">{formatRupiah(metrics.balance)}</h3>
-            <p className="text-xs font-medium text-indigo-200">Kondisi keuangan sehat dan stabil.</p>
+            <p className="text-xs font-medium text-indigo-200">{t('reports.condition_healthy')}</p>
           </div>
         </div>
       </div>
@@ -343,17 +345,21 @@ export default function Reports() {
           <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
             <FiZap size={16} />
           </div>
-          <h3 className="text-lg font-black text-slate-800">AI Financial Insights</h3>
+          <h3 className="text-lg font-black text-slate-800">{t('reports.ai_insights')}</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white/60 p-4 rounded-xl border border-white shadow-sm">
             <p className="text-sm text-slate-700 font-medium leading-relaxed">
-              Pengeluaran terbesar bulan ini berada pada kategori <span className="font-bold text-rose-600">Gaji</span> dan <span className="font-bold text-amber-600">Bahan Baku</span>.
+              <Trans i18nKey="reports.insight_1">
+                Pengeluaran terbesar bulan ini berada pada kategori <span className="font-bold text-rose-600">Gaji</span> dan <span className="font-bold text-amber-600">Bahan Baku</span>.
+              </Trans>
             </p>
           </div>
           <div className="bg-white/60 p-4 rounded-xl border border-white shadow-sm">
             <p className="text-sm text-slate-700 font-medium leading-relaxed">
-              Arus kas berjalan positif. Penjualan mengalami peningkatan signifikan pada tanggal <span className="font-bold text-emerald-600">08 Mei</span> sebesar Rp 3.200.000.
+              <Trans i18nKey="reports.insight_2">
+                Arus kas berjalan positif. Penjualan mengalami peningkatan signifikan pada tanggal <span className="font-bold text-emerald-600">08 Mei</span> sebesar Rp 3.200.000.
+              </Trans>
             </p>
           </div>
         </div>
@@ -365,7 +371,7 @@ export default function Reports() {
         {/* Cash Flow Area Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-black text-slate-800">Arus Kas Harian</h3>
+            <h3 className="text-lg font-black text-slate-800">{t('reports.daily_cashflow')}</h3>
           </div>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -398,7 +404,7 @@ export default function Reports() {
         {/* Expense Distribution Donut Chart */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-black text-slate-800">Distribusi Pengeluaran</h3>
+            <h3 className="text-lg font-black text-slate-800">{t('reports.expense_distribution')}</h3>
             <FiPieChart className="text-slate-400" />
           </div>
           <div className="flex-1 flex flex-col justify-center relative min-h-[250px]">
@@ -427,7 +433,7 @@ export default function Reports() {
             
             {/* Custom inner text for donut */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-xs font-bold text-slate-400">Total</span>
+              <span className="text-xs font-bold text-slate-400">{t('reports.total')}</span>
               <span className="text-sm font-black text-slate-800">{formatRupiah(metrics.expense)}</span>
             </div>
           </div>

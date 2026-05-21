@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   FiUser, FiMail, FiPhone, FiBriefcase,
@@ -66,6 +67,7 @@ const FormSelect = ({ label, icon: Icon, value, onChange, options }) => (
 );
 
 export default function Profile() {
+  const { t } = useTranslation();
   const fileInputRef = useRef(null);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -207,8 +209,8 @@ export default function Profile() {
     >
       {/* Page Title */}
       <motion.div variants={cardVariants}>
-        <h1 className="text-2xl md:text-3xl font-black text-slate-800">Profil Akun</h1>
-        <p className="text-slate-500 text-sm font-medium mt-1">Kelola informasi pribadi dan data usaha Anda</p>
+        <h1 className="text-2xl md:text-3xl font-black text-slate-800">{t('profile.title')}</h1>
+        <p className="text-slate-500 text-sm font-medium mt-1">{t('profile.subtitle')}</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -256,7 +258,7 @@ export default function Profile() {
               {/* Inline Progress Bar */}
               <div className="mt-5 pt-4 border-t border-slate-100">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Kelengkapan Profil</span>
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{t('profile.profile_completion')}</span>
                   <span className={`text-[11px] font-black ${
                     completionPercent === 100 ? 'text-emerald-500' : 'text-indigo-500'
                   }`}>{completionPercent}%</span>
@@ -300,12 +302,12 @@ export default function Profile() {
 
           {/* Stats Card */}
           <motion.div variants={cardVariants} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ringkasan Akun</h3>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('profile.account_summary')}</h3>
             <div className="space-y-3">
               {[
-                { icon: FiCalendar, label: "Bergabung Sejak", value: profile.joinDate, color: "text-indigo-500 bg-indigo-50" },
-                { icon: FiTrendingUp, label: "Status Akun", value: "Aktif", color: "text-emerald-500 bg-emerald-50" },
-                { icon: FiShield, label: "Keamanan", value: "Terverifikasi", color: "text-purple-500 bg-purple-50" },
+                { icon: FiCalendar, label: t('profile.joined_since'), value: profile.joinDate, color: "text-indigo-500 bg-indigo-50" },
+                { icon: FiTrendingUp, label: t('profile.account_status'), value: t('profile.status_active'), color: "text-emerald-500 bg-emerald-50" },
+                { icon: FiShield, label: t('profile.security'), value: t('profile.security_verified'), color: "text-purple-500 bg-purple-50" },
               ].map(({ icon: Icon, label, value, color }) => (
                 <div key={label} className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
@@ -331,21 +333,21 @@ export default function Profile() {
                 <FiUser size={15} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-slate-800">Informasi Pribadi</h3>
-                <p className="text-xs text-slate-500 font-medium">Data diri dan kontak Anda</p>
+                <h3 className="text-sm font-black text-slate-800">{t('profile.personal_info')}</h3>
+                <p className="text-xs text-slate-500 font-medium">{t('profile.personal_info_desc')}</p>
               </div>
             </div>
 
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FormInput
-                label="Nama Lengkap"
+                label={t('profile.full_name')}
                 icon={FiUser}
                 value={profile.namaLengkap}
                 onChange={handleChange("namaLengkap")}
                 placeholder="Masukkan nama lengkap Anda"
               />
               <FormInput
-                label="Alamat Email"
+                label={t('profile.email_address')}
                 icon={FiMail}
                 type="email"
                 value={profile.email}
@@ -355,7 +357,7 @@ export default function Profile() {
               />
               <div className="sm:col-span-2">
                 <FormInput
-                  label="Nomor Telepon"
+                  label={t('profile.phone_number')}
                   icon={FiPhone}
                   type="tel"
                   value={profile.telepon}
@@ -366,12 +368,12 @@ export default function Profile() {
               <div className="sm:col-span-2 space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                   <FiEdit3 size={11} />
-                  Bio Singkat
+                  {t('profile.short_bio')}
                 </label>
                 <textarea
                   value={profile.bio}
                   onChange={handleChange("bio")}
-                  placeholder="Ceritakan sedikit tentang Anda atau usaha Anda..."
+                  placeholder={t('profile.bio_placeholder')}
                   rows={3}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400
                     focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white
@@ -388,8 +390,8 @@ export default function Profile() {
                 <FiKey size={15} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-slate-800">Keamanan Akun</h3>
-                <p className="text-xs text-slate-500 font-medium">Perbarui kata sandi Anda</p>
+                <h3 className="text-sm font-black text-slate-800">{t('profile.account_security')}</h3>
+                <p className="text-xs text-slate-500 font-medium">{t('profile.account_security_desc')}</p>
               </div>
             </div>
 
@@ -397,7 +399,7 @@ export default function Profile() {
               {/* Old Password */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Kata Sandi Lama
+                  {t('profile.old_password')}
                 </label>
                 <div className="relative">
                   <input
@@ -426,7 +428,7 @@ export default function Profile() {
               {/* New Password */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Kata Sandi Baru
+                  {t('profile.new_password')}
                 </label>
                 <div className="relative">
                   <input
@@ -435,7 +437,7 @@ export default function Profile() {
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
                     className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
-                    placeholder="Masukkan kata sandi baru"
+                    placeholder={t('profile.new_password_placeholder')}
                   />
                   <button
                     type="button"
@@ -466,7 +468,7 @@ export default function Profile() {
               {/* Confirm New Password */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Konfirmasi Kata Sandi Baru
+                  {t('profile.confirm_password')}
                 </label>
                 <div className="relative">
                   <input
@@ -475,7 +477,7 @@ export default function Profile() {
                     value={passwordData.confirmNewPassword}
                     onChange={handlePasswordChange}
                     className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${isConfirmPasswordInvalid ? "border-red-400 focus:ring-red-400 focus:bg-red-50/50" : isPasswordMatch ? "border-emerald-400 focus:ring-emerald-400 focus:bg-emerald-50/50" : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500"} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}
-                    placeholder="Ulangi kata sandi baru"
+                    placeholder={t('profile.confirm_password_placeholder')}
                   />
                   <button
                     type="button"
@@ -511,9 +513,9 @@ export default function Profile() {
               {saveStatus === "saved" && <FiCheck size={16} strokeWidth={3} />}
               {saveStatus === "idle" && <FiSave size={16} strokeWidth={2.5} />}
 
-              {saveStatus === "saving" && "Menyimpan..."}
-              {saveStatus === "saved" && "Tersimpan!"}
-              {saveStatus === "idle" && "Simpan Perubahan"}
+              {saveStatus === "saving" && t('profile.saving')}
+              {saveStatus === "saved" && t('profile.save_success')}
+              {saveStatus === "idle" && t('profile.save_changes')}
             </button>
           </motion.div>
         </div>

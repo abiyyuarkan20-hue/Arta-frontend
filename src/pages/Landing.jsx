@@ -43,11 +43,15 @@ import {
   FiDownload,
   FiPackage,
   FiHelpCircle,
+  FiGlobe,
 } from "react-icons/fi";
 import { FaTwitter, FaLinkedin, FaInstagram, FaYoutube } from "react-icons/fa";
 
+import { useTranslation } from "react-i18next";
+
 const Landing = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -360,6 +364,15 @@ const Landing = () => {
                 </Link>
               </div>
             )}
+            
+            {/* Language Switcher */}
+            <button 
+              onClick={() => i18n.changeLanguage(i18n.language === "ID" ? "EN" : "ID")}
+              className="hidden md:flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-colors border border-white/10"
+            >
+              <FiGlobe className="text-slate-300" size={14} />
+              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{i18n.language || "ID"}</span>
+            </button>
           </div>
 
           {/* Mobile Menu Toggle */}

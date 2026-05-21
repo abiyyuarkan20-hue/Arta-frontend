@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { 
   FiPlus, FiSearch, FiFilter, FiDownload, FiMoreVertical, 
   FiArrowUpRight, FiArrowDownRight, FiX, FiZap, FiLoader,
@@ -32,6 +33,7 @@ const categoryColors = {
 };
 
 export default function Transactions() {
+  const { t } = useTranslation();
   const [transactions, setTransactions] = useState(initialTransactions);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("Semua");
@@ -116,14 +118,14 @@ export default function Transactions() {
   };
 
   const handleDeleteTransaction = (id) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+    if (window.confirm(t('transactions.confirm_delete'))) {
       setTransactions(transactions.filter(t => t.id !== id));
     }
   };
 
   const handleSaveTransaction = () => {
     if (!formData.amount || !formData.date || !formData.description || !formData.category) {
-      alert("Harap lengkapi semua data wajib.");
+      alert(t('transactions.fill_all'));
       return;
     }
     
@@ -178,13 +180,13 @@ export default function Transactions() {
       
       {/* 1. Header & Panel Metrik Ringkas */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-black text-slate-800 mb-6">Manajemen Transaksi</h1>
+        <h1 className="text-2xl md:text-3xl font-black text-slate-800 mb-6">{t('transactions.title')}</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Card: Pemasukan */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-500 mb-1">Total Pemasukan (Bulan Ini)</p>
+              <p className="text-sm font-semibold text-slate-500 mb-1">{t('transactions.income_this_month')}</p>
               <h3 className="text-2xl font-black text-emerald-600">{formatRupiah(metrics.income)}</h3>
             </div>
             <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
@@ -195,7 +197,7 @@ export default function Transactions() {
           {/* Card: Pengeluaran */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-500 mb-1">Total Pengeluaran (Bulan Ini)</p>
+              <p className="text-sm font-semibold text-slate-500 mb-1">{t('transactions.expense_this_month')}</p>
               <h3 className="text-2xl font-black text-rose-600">{formatRupiah(metrics.expense)}</h3>
             </div>
             <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-rose-600">
@@ -207,7 +209,7 @@ export default function Transactions() {
           <div className="bg-white p-5 rounded-2xl border-2 border-blue-50 shadow-md hover:shadow-lg transition-shadow flex items-center justify-between relative overflow-hidden">
             <div className="absolute right-0 top-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl pointer-events-none"></div>
             <div className="relative z-10">
-              <p className="text-sm font-semibold text-slate-500 mb-1">Arus Kas Bersih</p>
+              <p className="text-sm font-semibold text-slate-500 mb-1">{t('transactions.net_cash_flow')}</p>
               <h3 className={`text-2xl font-black ${metrics.balance >= 0 ? 'text-blue-600' : 'text-rose-600'}`}>
                 {metrics.balance >= 0 ? '+' : ''}{formatRupiah(metrics.balance)}
               </h3>
@@ -225,7 +227,7 @@ export default function Transactions() {
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Cari transaksi..." 
+              placeholder={t('transactions.search_placeholder')} 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-700 font-medium"
@@ -239,7 +241,7 @@ export default function Transactions() {
               onChange={(e) => setFilterCategory(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-slate-700 font-medium appearance-none cursor-pointer"
             >
-              <option value="Semua">Semua Kategori</option>
+              <option value="Semua">{t('transactions.all_categories')}</option>
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -268,7 +270,7 @@ export default function Transactions() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm">
             <FiDownload />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">{t('transactions.export_csv')}</span>
           </button>
           
           <button 
@@ -287,7 +289,7 @@ export default function Transactions() {
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-black hover:bg-blue-700 transition-all shadow-md shadow-blue-500/20 active:scale-95"
           >
             <FiPlus size={18} />
-            <span>Tambah Transaksi</span>
+            <span>{t('transactions.add_transaction')}</span>
           </button>
         </div>
       </div>
@@ -298,14 +300,14 @@ export default function Transactions() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-bold">
-                <th className="px-6 py-4 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors">Tanggal <span className="text-[10px] text-slate-400">▼</span></th>
-                <th className="px-6 py-4">Keterangan</th>
-                <th className="px-6 py-4">Kategori</th>
+                <th className="px-6 py-4 flex items-center gap-1.5 cursor-pointer hover:text-blue-600 transition-colors">{t('transactions.table_date')} <span className="text-[10px] text-slate-400">▼</span></th>
+                <th className="px-6 py-4">{t('transactions.table_desc')}</th>
+                <th className="px-6 py-4">{t('transactions.table_category')}</th>
                 <th className="px-6 py-4 text-right cursor-pointer hover:text-blue-600 transition-colors">
-                  <div className="flex items-center justify-end gap-1.5">Nominal <span className="text-[10px] text-slate-400">▼</span></div>
+                  <div className="flex items-center justify-end gap-1.5">{t('transactions.table_amount')} <span className="text-[10px] text-slate-400">▼</span></div>
                 </th>
-                <th className="px-6 py-4 text-center">Bukti</th>
-                <th className="px-6 py-4 text-center">Aksi</th>
+                <th className="px-6 py-4 text-center">{t('transactions.table_proof')}</th>
+                <th className="px-6 py-4 text-center">{t('transactions.table_action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -343,7 +345,7 @@ export default function Transactions() {
                           title={trx.invoice}
                         >
                           <FiPaperclip className="text-slate-400 group-hover:text-indigo-500 transition-colors" size={14} />
-                          <span className="text-xs font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">Lihat</span>
+                          <span className="text-xs font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">{t('transactions.view')}</span>
                         </button>
                       ) : (
                         <span className="text-slate-300">-</span>
@@ -372,7 +374,7 @@ export default function Transactions() {
               ) : (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-slate-500 font-medium">
-                    Tidak ada transaksi yang ditemukan.
+                    {t('transactions.no_transactions')}
                   </td>
                 </tr>
               )}
@@ -411,9 +413,9 @@ export default function Transactions() {
                   <div className="w-12 h-12 bg-white/5 backdrop-blur-md rounded-2xl flex items-center justify-center mb-8 border border-white/10 shadow-lg">
                     <FiPlus size={24} className="text-indigo-400" />
                   </div>
-                  <h2 className="text-3xl font-black mb-5 tracking-tight leading-[1.1]">{editingId ? "Edit Transaksi" : "Catat Transaksi"}<br/>Lebih Cerdas.</h2>
+                  <h2 className="text-3xl font-black mb-5 tracking-tight leading-[1.1]">{editingId ? t('transactions.modal_edit_title') : t('transactions.modal_add_title')}<br/>{t('transactions.modal_smarter')}</h2>
                   <p className="text-slate-400 leading-relaxed font-medium text-sm">
-                    Gunakan fitur Auto-Kategori berteknologi AI dari Artha untuk mempercepat pembukuan Anda. Sistem kami akan menganalisis teks keterangan secara otomatis.
+                    {t('transactions.modal_ai_desc')}
                   </p>
                 </div>
                 
@@ -422,9 +424,9 @@ export default function Transactions() {
                      <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center">
                        <FiZap className="text-amber-400 w-3 h-3" />
                      </div>
-                     <h4 className="font-bold text-sm text-slate-200">Tips AI</h4>
+                     <h4 className="font-bold text-sm text-slate-200">{t('transactions.ai_tips_title')}</h4>
                    </div>
-                   <p className="text-xs text-slate-400 leading-relaxed">Ketik keterangan sedetail mungkin (misal: "Beli token listrik bulan Mei") agar AI memberikan kategori yang akurat.</p>
+                   <p className="text-xs text-slate-400 leading-relaxed">{t('transactions.ai_tips_desc')}</p>
                 </div>
               </div>
 
@@ -432,9 +434,9 @@ export default function Transactions() {
               <div className="flex-1 flex flex-col h-full relative bg-slate-50/50">
                 {/* Header */}
                 <div className="px-6 md:px-10 py-6 flex items-center justify-between border-b border-slate-200 bg-white">
-                  <h2 className="text-xl font-black text-slate-800 md:hidden">{editingId ? "Edit Transaksi" : "Tambah Transaksi"}</h2>
+                  <h2 className="text-xl font-black text-slate-800 md:hidden">{editingId ? t('transactions.modal_edit_title') : t('transactions.modal_add_title')}</h2>
                   <div className="hidden md:block">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">{editingId ? "Edit Data" : "Input Data"}</span>
+                    <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">{editingId ? t('transactions.edit_data') : t('transactions.input_data')}</span>
                   </div>
                   <button 
                     onClick={() => setIsModalOpen(false)}
@@ -450,7 +452,7 @@ export default function Transactions() {
                     
                     {/* Input Tipe Transaksi (Besar & Jelas) */}
                     <div className="space-y-3">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Jenis Transaksi</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('transactions.transaction_type')}</label>
                       <div className="relative flex p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/60 shadow-inner">
                         {["Pengeluaran", "Pemasukan"].map((type) => {
                           const isActive = formData.type === type;
@@ -480,7 +482,7 @@ export default function Transactions() {
                                 ) : (
                                   <FiArrowUpRight size={18} className={isActive ? "text-emerald-500" : "opacity-60"} />
                                 )}
-                                {type}
+                                {isExpense ? t('transactions.expense') : t('transactions.income')}
                               </span>
                             </button>
                           );
@@ -491,7 +493,7 @@ export default function Transactions() {
                     {/* Input Nominal & Tanggal */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nominal (Rp)</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('transactions.amount')}</label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-slate-400">Rp</span>
                           <input 
@@ -504,7 +506,7 @@ export default function Transactions() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tanggal</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('transactions.date')}</label>
                         <input 
                           type="date" 
                           value={formData.date}
@@ -517,12 +519,12 @@ export default function Transactions() {
                     {/* Input Keterangan & Smart AI Button */}
                     <div className="space-y-2 relative">
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Keterangan Transaksi</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('transactions.transaction_desc')}</label>
                       </div>
                       <div className="relative">
                         <input 
                           type="text" 
-                          placeholder="Contoh: Beli bahan baku tepung"
+                          placeholder={t('transactions.desc_placeholder')}
                           value={formData.description}
                           onChange={(e) => setFormData({...formData, description: e.target.value})}
                           className="w-full pl-4 pr-32 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
@@ -537,7 +539,7 @@ export default function Transactions() {
                             title="Auto-Categorize dengan AI"
                           >
                             {isAILoading ? <FiLoader className="animate-spin text-white" /> : <FiZap className="text-amber-300" />}
-                            <span className="hidden sm:inline">AI Kategori</span>
+                            <span className="hidden sm:inline">{t('transactions.ai_category')}</span>
                             <span className="sm:hidden">AI</span>
                           </button>
                         </div>
@@ -546,7 +548,7 @@ export default function Transactions() {
 
                     {/* Input Kategori */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('transactions.category_label')}</label>
                       <select 
                         value={formData.category}
                         onChange={(e) => setFormData({...formData, category: e.target.value})}
@@ -554,14 +556,14 @@ export default function Transactions() {
                           isAILoading ? 'animate-pulse bg-indigo-50 border-indigo-200 shadow-inner' : ''
                         }`}
                       >
-                        <option value="" disabled>Pilih Kategori</option>
+                        <option value="" disabled>{t('transactions.select_category')}</option>
                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
 
                     {/* Input Upload Invoice */}
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bukti Invoice / Nota</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('transactions.invoice_proof')}</label>
                       <div 
                         className={`w-full border-2 border-dashed rounded-2xl p-6 transition-all ${
                           formData.invoiceFile 
@@ -599,7 +601,7 @@ export default function Transactions() {
                               }}
                               className="mt-2 text-[10px] uppercase tracking-wider font-black text-rose-500 hover:text-rose-600 bg-rose-50 px-3 py-1.5 rounded-full transition-colors relative z-20"
                             >
-                              Hapus File
+                              {t('transactions.remove_file')}
                             </button>
                           </div>
                         ) : (
@@ -608,8 +610,8 @@ export default function Transactions() {
                               <FiUploadCloud size={24} />
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-slate-700">Klik atau seret file ke sini</p>
-                              <p className="text-xs font-medium text-slate-500 mt-1">Mendukung format JPG, PNG, atau PDF (Max 5MB)</p>
+                              <p className="text-sm font-bold text-slate-700">{t('transactions.drag_drop')}</p>
+                              <p className="text-xs font-medium text-slate-500 mt-1">{t('transactions.support_format')}</p>
                             </div>
                           </div>
                         )}
@@ -625,13 +627,13 @@ export default function Transactions() {
                     onClick={() => setIsModalOpen(false)}
                     className="px-6 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                   >
-                    Batal
+                    {t('transactions.cancel')}
                   </button>
                   <button 
                     onClick={handleSaveTransaction}
                     className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-black hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 active:scale-95 flex items-center gap-2"
                   >
-                    <span>Simpan Transaksi</span>
+                    <span>{t('transactions.save_transaction')}</span>
                     <FiArrowUpRight size={18} className="opacity-80" />
                   </button>
                 </div>
@@ -694,7 +696,7 @@ export default function Transactions() {
               {/* Right: Transaction Details */}
               <div className="w-full md:w-80 bg-white p-8 flex flex-col border-l border-slate-100">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-black text-slate-800">Detail Invoice</h3>
+                  <h3 className="font-black text-slate-800">{t('transactions.invoice_detail')}</h3>
                   <button 
                     onClick={() => setViewingInvoice(null)}
                     className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"
@@ -705,27 +707,27 @@ export default function Transactions() {
 
                 <div className="space-y-5 flex-1">
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nama File</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('transactions.file_name')}</p>
                     <p className="text-sm font-semibold text-slate-800 break-words">{viewingInvoice.invoice}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Keterangan Transaksi</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('transactions.transaction_desc')}</p>
                     <p className="text-sm font-semibold text-slate-800">{viewingInvoice.description}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tanggal</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('transactions.date')}</p>
                       <p className="text-sm font-semibold text-slate-800">{formatDate(viewingInvoice.date)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nominal</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{t('transactions.table_amount')}</p>
                       <p className={`text-sm font-black ${viewingInvoice.type === 'Pemasukan' ? 'text-emerald-600' : 'text-slate-800'}`}>
                         {formatRupiah(viewingInvoice.amount)}
                       </p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Status AI Kategori</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('transactions.ai_category_status')}</p>
                     <span className={`px-2.5 py-1 text-xs font-bold rounded-md border ${categoryColors[viewingInvoice.category] || categoryColors["Lainnya"]}`}>
                       {viewingInvoice.category}
                     </span>
@@ -735,7 +737,7 @@ export default function Transactions() {
                 <div className="pt-6 mt-6 border-t border-slate-100">
                   <button className="w-full py-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-colors">
                     <FiDownload size={16} />
-                    Unduh Dokumen
+                    {t('transactions.download_doc')}
                   </button>
                 </div>
               </div>
