@@ -18,7 +18,7 @@ import {
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import logoImg from "../assets/logo.png";
+import logoImg from "../assets/logo-2.png";
 
 const Layout = () => {
   const location = useLocation();
@@ -53,23 +53,30 @@ const Layout = () => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error("Failed to parse user data", e);
+    const loadUserData = () => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Failed to parse user data", e);
+        }
       }
-    }
 
-    const storedProfile = localStorage.getItem("profile");
-    if (storedProfile) {
-      try {
-        setProfile(JSON.parse(storedProfile));
-      } catch (e) {
-        console.error("Failed to parse profile data", e);
+      const storedProfile = localStorage.getItem("profile");
+      if (storedProfile) {
+        try {
+          setProfile(JSON.parse(storedProfile));
+        } catch (e) {
+          console.error("Failed to parse profile data", e);
+        }
       }
-    }
+    };
+
+    loadUserData();
+
+    window.addEventListener("profileUpdated", loadUserData);
+    return () => window.removeEventListener("profileUpdated", loadUserData);
   }, []);
 
   const fullName = profile?.nama_lengkap || user?.user_metadata?.nama_lengkap || "Admin Usaha";
@@ -102,8 +109,7 @@ const Layout = () => {
           name: t("menu.settings"), 
           icon: <FiSettings />,
           subItems: [
-            { name: "Profil Akun", path: "/dashboard/profile" },
-            { name: "Kuesioner Bisnis", path: "/dashboard/settings?tab=questionnaire" }
+            { name: "Profil Akun", path: "/dashboard/profile" }
           ]
         },
       ];
@@ -134,13 +140,21 @@ const Layout = () => {
         className="bg-white border-r border-slate-200 hidden lg:flex flex-col shadow-sm z-20 overflow-hidden absolute inset-y-0 left-0 hover:shadow-xl"
         style={{ position: 'relative' }} // Changed from static to relative so it pushes content when expanding or we can make it absolute
       >
-        <div className="h-20 flex items-center justify-center border-b border-slate-100 px-4">
-          <div className="flex items-center justify-center w-full min-w-max">
-            <img 
-              src={logoImg} 
-              alt="Artha Logo" 
-              className={`w-auto object-contain drop-shadow-sm transition-all duration-300 cursor-pointer ${isDesktopSidebarCollapsed ? 'h-8' : 'h-10 sm:h-12 md:h-14 hover:scale-105'}`} 
+        <div className="py-5 flex flex-col items-center justify-center border-b border-slate-100 px-4">
+          <div className="flex flex-col items-center justify-center min-w-max gap-1.5">
+            {/* Logo image */}
+            <img
+              src={logoImg}
+              alt="Artha Logo"
+              className={`w-auto object-contain transition-all duration-300 drop-shadow-sm ${isDesktopSidebarCollapsed ? 'h-8' : 'h-11 sm:h-12'}`}
             />
+            {/* Brand text */}
+            <span
+              className={`font-black tracking-[0.2em] pl-[0.1em] text-slate-800 whitespace-nowrap transition-all duration-300 ${isDesktopSidebarCollapsed ? 'text-[10px] mt-0.5' : 'text-[15px] mt-1'}`}
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif" }}
+            >
+              ARTA
+            </span>
           </div>
         </div>
         <nav className={`flex-1 space-y-2 overflow-y-auto overflow-x-hidden transition-all duration-400 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${isDesktopSidebarCollapsed ? 'p-4' : 'p-6'}`}>
@@ -266,13 +280,19 @@ const Layout = () => {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-y-0 left-0 w-72 bg-white z-[70] lg:hidden flex flex-col shadow-2xl"
             >
-              <div className="h-20 flex items-center justify-center relative border-b border-slate-100">
-                <div className="flex items-center justify-center w-full">
-                  <img src={logoImg} alt="Artha Logo" className="h-10 w-auto object-contain" />
+              <div className="py-6 flex flex-col items-center justify-center relative border-b border-slate-100">
+                <div className="flex flex-col items-center gap-2">
+                  <img src={logoImg} alt="Artha Logo" className="h-11 sm:h-12 w-auto object-contain drop-shadow-sm" />
+                  <span
+                    className="text-[15px] font-black tracking-[0.2em] pl-[0.1em] text-slate-800 mt-1"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif" }}
+                  >
+                    ARTA
+                  </span>
                 </div>
                 <button
                   onClick={toggleSidebar}
-                  className="text-slate-400 hover:text-slate-600 absolute right-6 p-2 rounded-lg hover:bg-slate-50 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 absolute right-4 top-4 p-2 rounded-lg hover:bg-slate-50 transition-colors"
                 >
                   <FiX size={24} />
                 </button>
@@ -378,8 +398,12 @@ const Layout = () => {
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="flex items-center gap-3 md:gap-4 hover:bg-slate-50 p-1.5 md:pr-4 rounded-full md:rounded-2xl transition-colors border border-transparent hover:border-slate-200"
             >
-              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border-2 border-white shadow-sm shrink-0">
-                {initials}
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border-2 border-white shadow-sm shrink-0 overflow-hidden">
+                {user?.user_metadata?.avatar ? (
+                  <img src={user.user_metadata.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  initials
+                )}
               </div>
               <div className="flex flex-col items-start hidden sm:flex text-left">
                 <span className="text-sm font-bold text-slate-700 leading-tight">
