@@ -2,7 +2,7 @@ import React from 'react';
 import { FaGoogle, FaApple } from 'react-icons/fa';
 import financeBg from '../assets/finance_bg.png';
 import financeHero from '../assets/finance_hero.png';
-import logoImg from '../assets/logo.png';
+import logoImg from '../assets/logo-2.png';
 
 const AuthLayout = ({ children, title, subtitle, showSocial }) => {
   return (
@@ -21,21 +21,43 @@ const AuthLayout = ({ children, title, subtitle, showSocial }) => {
           <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-blue-50 to-transparent opacity-60 pointer-events-none rounded-tl-[2rem]"></div>
           
           <div className="flex flex-col items-center mb-6 relative z-10">
-            <div className="relative mb-4 group">
-              {/* Glow background behind logo */}
-              <div className="absolute inset-0 bg-indigo-400/20 blur-2xl rounded-full scale-125 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <img
-                src={logoImg}
-                alt="Artha Logo"
-                className="h-20 w-auto object-contain relative z-10
-                  drop-shadow-[0_6px_20px_rgba(99,102,241,0.3)]
-                  hover:scale-105 transition-transform duration-300"
-              />
+            {/* Brand Block */}
+            <div className="flex flex-col items-center mb-5">
+              {/* Logo + Brand Name container */}
+              <div className="flex flex-col items-center gap-2 group cursor-default">
+                {/* Logo with subtle glow ring on hover */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-indigo-500/20 blur-2xl scale-125 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-full" />
+                  <img
+                    src={logoImg}
+                    alt="Artha Logo"
+                    className="h-20 sm:h-24 w-auto object-contain relative z-10 drop-shadow-[0_4px_12px_rgba(79,70,229,0.2)] transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+
+                {/* Brand Name */}
+                <span
+                  className="text-[22px] leading-none font-black tracking-[0.25em] pl-[0.25em] text-slate-800 mt-1"
+                  style={{
+                    fontFamily: "'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif",
+                  }}
+                >
+                  ARTA
+                </span>
+              </div>
+
+              {/* Thin accent divider */}
+              <div className="mt-4 flex items-center gap-2">
+                <div className="h-px w-12 bg-gradient-to-r from-transparent to-slate-200" />
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                <div className="h-px w-12 bg-gradient-to-l from-transparent to-slate-200" />
+              </div>
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-800 text-center mb-2 tracking-tight">
+
+            <h1 className="text-xl font-extrabold text-slate-800 text-center mb-2 tracking-tight">
               {title || "Empower Your UMKM"}
             </h1>
-            <p className="text-slate-500 text-center text-sm max-w-sm font-medium leading-relaxed">
+            <p className="text-slate-400 text-center text-sm max-w-xs font-medium leading-relaxed">
               {subtitle || "Manage your business finances smartly and reach your goals."}
             </p>
           </div>

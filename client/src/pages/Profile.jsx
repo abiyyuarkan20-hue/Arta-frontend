@@ -178,6 +178,7 @@ export default function Profile() {
           },
         };
         localStorage.setItem("user", JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event("profileUpdated"));
       }
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
