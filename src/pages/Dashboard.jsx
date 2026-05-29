@@ -133,53 +133,40 @@ const Dashboard = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
         onClick={handleDismissPrompt}
       />
 
       {/* Modal */}
       <div
-        className="relative bg-white rounded-[2rem] shadow-2xl max-w-md w-full overflow-hidden"
-        style={{ animation: "modalPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+        className="relative bg-white rounded-3xl shadow-2xl max-w-[90vw] sm:max-w-md w-full overflow-hidden"
+        style={{ animation: "modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
       >
-        {/* Decorative Top Background */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 opacity-100" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
-
-        {/* Close Button */}
-        <button
-          onClick={handleDismissPrompt}
-          className="absolute top-4 right-4 text-white hover:text-white/80 bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition-all z-10 backdrop-blur-sm"
-        >
-          <FiX size={20} strokeWidth={3} />
-        </button>
-
-        {/* Content */}
-        <div className="relative p-8 pt-10 text-center">
+        <div className="p-6 sm:p-8 text-center">
           {/* Icon Header */}
-          <div className="mx-auto w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-xl shadow-indigo-500/20 transform -rotate-3 hover:rotate-0 transition-transform relative z-10 -mt-20 border-4 border-white">
-            <FiCheckCircle size={40} className="text-emerald-500" />
+          <div className="mx-auto w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-6 ring-8 ring-emerald-50/50">
+            <FiCheckCircle size={32} />
           </div>
 
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-tight mb-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight mb-3">
             {t('dashboard.first_step_success')}
           </h2>
-          <p className="text-slate-500 text-sm leading-relaxed px-2 mb-8">
-            Ide <span className="font-bold text-indigo-600">"{newBusinessName}"</span> Anda sudah kami simpan. Mari lengkapi profil usaha agar fitur AI bekerja optimal.
+          <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-8">
+            Ide bisnis <span className="font-semibold text-slate-900">"{newBusinessName}"</span> berhasil disimpan. Lengkapi profil usaha Anda agar fitur AI dapat memberikan rekomendasi yang optimal.
           </p>
 
           {/* Action Buttons */}
-          <div className="flex flex-col gap-3 mt-4">
+          <div className="flex flex-col gap-3">
             <button
               onClick={handleGoToProfile}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 active:scale-95 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/25 text-sm group"
+              className="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md text-sm"
             >
               {t('dashboard.complete_profile_now')}
-              <FiArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              <FiArrowRight size={18} />
             </button>
             <button
               onClick={handleDismissPrompt}
-              className="w-full text-slate-400 hover:text-slate-600 font-bold py-3 text-sm transition-colors rounded-xl hover:bg-slate-50"
+              className="w-full text-slate-500 hover:text-slate-800 font-semibold py-3 sm:py-3.5 text-sm transition-colors rounded-xl hover:bg-slate-50"
             >
               {t('dashboard.maybe_later')}
             </button>
@@ -189,7 +176,7 @@ const Dashboard = () => {
 
       <style>{`
         @keyframes modalPop {
-          from { opacity: 0; transform: scale(0.95) translateY(20px); }
+          from { opacity: 0; transform: scale(0.95) translateY(15px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>

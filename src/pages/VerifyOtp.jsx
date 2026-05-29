@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
+import { supabase } from "../services/supabaseClient";
 import AuthLayout from "../components/AuthLayout";
 import { FiMail, FiRefreshCw, FiShield } from "react-icons/fi";
 
@@ -98,18 +99,19 @@ const VerifyOtp = () => {
     setLoading(true);
 
     try {
-      const response = await api.post("/api/auth/verify-otp", {
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
         email,
-        otp: otpCode,
+        token: otpCode,
+        type: "signup",
       });
+
+      if (verifyError) throw verifyError;
 
       setSuccess("Verifikasi berhasil! Mengalihkan ke halaman login...");
 
-      // Simpan token sementara (opsional — user bisa langsung login)
-      if (response.data.data?.token) {
-        localStorage.setItem("token", response.data.data.token);
-        localStorage.setItem("refreshToken", response.data.data.refreshToken);
-      }
+      // Coba kirim data profil ke backend (onboarding dummy jika diperlukan)
+      // Supabase otomatis menyimpan session jika berhasil login via OTP
+
 
       // Redirect ke login setelah 2 detik
       setTimeout(() => {
@@ -118,7 +120,7 @@ const VerifyOtp = () => {
         });
       }, 2000);
     } catch (err) {
-      const message = err.response?.data?.message || "Kode OTP tidak valid";
+      const message = err.message || "Kode OTP tidak valid";
       setError(message);
 
       // Shake animation saat error
@@ -142,7 +144,11 @@ const VerifyOtp = () => {
     setError("");
 
     try {
-      await api.post("/api/auth/resend-otp", { email });
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (resendError) throw resendError;
       setSuccess("Kode OTP baru telah dikirim ke email Anda!");
       setCanResend(false);
       setCountdown(60);
@@ -152,7 +158,7 @@ const VerifyOtp = () => {
       // Hilangkan pesan sukses setelah 3 detik
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Gagal mengirim ulang kode OTP");
+      setError(err.message || "Gagal mengirim ulang kode OTP");
     } finally {
       setResendLoading(false);
     }

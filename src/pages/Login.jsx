@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../services/api";
+import { supabase } from "../services/supabaseClient";
 import AuthLayout from "../components/AuthLayout";
 
 const Login = () => {
@@ -29,15 +30,32 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Memanggil API Back-End yang sudah kita buat
-      const response = await api.post("/api/auth/login", formData);
+      // Login menggunakan Supabase Auth
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      // Menyimpan token dan data user ke localStorage agar user tetap login
-      localStorage.setItem("token", response.data.data.token);
-      localStorage.setItem("refreshToken", response.data.data.refreshToken);
-      localStorage.setItem("user", JSON.stringify(response.data.data.user));
+      // === DEBUGGING ===
+      console.log("[DEBUG LOGIN] Login Berhasil!");
+      console.log("[DEBUG LOGIN] Token JWT didapatkan:", data.session.access_token.substring(0, 30) + "...");
+      // =================
 
-      const profile = response.data.data.profile;
+      // Sesuai instruksi: Simpan token JWT ke localStorage DULU
+      if (data?.session?.access_token) {
+        localStorage.setItem("token", data.session.access_token);
+        console.log("[DEBUG LOGIN] Token JWT berhasil disimpan ke localStorage.");
+      }
+
+      console.log("[DEBUG LOGIN] Akan melakukan GET Profile setelah token masuk localStorage.");
+
+      // Ambil profile dari backend, biarkan api.js (interceptor) yang otomatis ambil dari localStorage
+      const profileResponse = await api.get("/api/profile").catch((err) => {
+        console.error("Gagal mengambil profil:", err);
+        return null;
+      });
+      
+      const profile = profileResponse?.data?.data?.profile;
       if (profile) {
         localStorage.setItem("profile", JSON.stringify(profile));
       }
@@ -49,10 +67,9 @@ const Login = () => {
         navigate("/onboarding");
       }
     } catch (err) {
-      const message = err.response?.data?.message || "Terjadi kesalahan saat login";
+      const message = err.message || err.response?.data?.message || "Terjadi kesalahan saat login";
       setError(message);
-      // Deteksi apakah error karena email belum dikonfirmasi
-      if (message.includes("belum dikonfirmasi") || message.includes("Email not confirmed")) {
+      if (message.toLowerCase().includes("email not confirmed")) {
         setIsEmailNotConfirmed(true);
       }
     } finally {

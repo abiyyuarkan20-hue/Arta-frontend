@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { supabase } from "../services/supabaseClient";
 import AuthLayout from "../components/AuthLayout";
 import { FiEye, FiEyeOff, FiCheck, FiX } from "react-icons/fi";
 
@@ -54,11 +55,24 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await api.post("/api/auth/register", formData);
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.nama,
+          },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+      
+      // Catatan: Jika email confirmation diaktifkan di Supabase, data.session mungkin null.
+      // Arahkan user ke halaman OTP / Verifikasi
       navigate("/verify-otp", { state: { email: formData.email } });
     } catch (err) {
       setError(
-        err.response?.data?.message || "Terjadi kesalahan saat mendaftar",
+        err.message || err.response?.data?.message || "Terjadi kesalahan saat mendaftar",
       );
     } finally {
       setLoading(false);
