@@ -202,8 +202,9 @@ const login = async (req, res) => {
       });
     }
 
+    const authSupabase = supabase.createAuthClient(data.session.access_token);
     // Ambil data profil
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await authSupabase
       .from("profiles")
       .select("*")
       .eq("id", data.user.id)

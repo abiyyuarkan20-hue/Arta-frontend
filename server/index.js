@@ -36,6 +36,10 @@ app.use("/api/auth", authRoutes);
 // Profile routes (dilindungi JWT)
 app.use("/api/profile", authMiddleware, profileRoutes);
 
+// Feasibility Test routes (dilindungi JWT)
+const feasibilityRoutes = require("./routes/feasibilityRoutes");
+app.use("/api/feasibility-tests", authMiddleware, feasibilityRoutes);
+
 // Contoh: Rute yang dilindungi JWT middleware
 // app.use("/api/transactions", authMiddleware, transactionRoutes);
 // app.use("/api/reports", authMiddleware, reportRoutes);

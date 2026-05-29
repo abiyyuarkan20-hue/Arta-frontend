@@ -13,4 +13,15 @@ if (!supabaseUrl || !supabaseKey) {
 // Inisialisasi client Supabase
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+const createAuthClient = (token) => {
+  return createClient(supabaseUrl, supabaseKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  });
+};
+
 module.exports = supabase;
+module.exports.createAuthClient = createAuthClient;

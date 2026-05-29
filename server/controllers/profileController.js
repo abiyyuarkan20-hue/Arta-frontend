@@ -4,8 +4,9 @@ const supabase = require("../services/supabase");
 const getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
+    const authSupabase = supabase.createAuthClient(req.token);
 
-    const { data, error } = await supabase
+    const { data, error } = await authSupabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
@@ -15,7 +16,7 @@ const getProfile = async (req, res) => {
 
     // Jika profil belum ada, buat profil baru
     if (!data) {
-      const { data: newProfile, error: insertError } = await supabase
+      const { data: newProfile, error: insertError } = await authSupabase
         .from("profiles")
         .insert({
           id: userId,
@@ -67,10 +68,11 @@ const updateOnboarding = async (req, res) => {
       if (tipe_usaha) updateData.tipe_usaha = tipe_usaha;
     }
 
-    const { data, error } = await supabase
+    const authSupabase = supabase.createAuthClient(req.token);
+
+    const { data, error } = await authSupabase
       .from("profiles")
-      .update(updateData)
-      .eq("id", userId)
+      .upsert({ id: userId, ...updateData })
       .select()
       .single();
 
@@ -102,15 +104,17 @@ const upgradeToUmkm = async (req, res) => {
       });
     }
 
-    const { data, error } = await supabase
+    const authSupabase = supabase.createAuthClient(req.token);
+
+    const { data, error } = await authSupabase
       .from("profiles")
-      .update({
+      .upsert({
+        id: userId,
         user_type: "umkm_aktif",
         nama_usaha,
         tipe_usaha,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", userId)
       .select()
       .single();
 
