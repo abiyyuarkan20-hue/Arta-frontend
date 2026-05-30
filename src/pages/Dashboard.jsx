@@ -12,70 +12,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
 } from "recharts";
 
-const dummyDataByRange = {
-  "hari_ini": {
-    pemasukan: 1500000,
-    pengeluaran: 400000,
-    laba: 1100000,
-    pemasukanTren: "+2% dari kemarin",
-    pengeluaranTren: "-1% dari kemarin",
-    chart: [
-      { date: "08:00", Pemasukan: 200000, Pengeluaran: 0 },
-      { date: "10:00", Pemasukan: 500000, Pengeluaran: 100000 },
-      { date: "12:00", Pemasukan: 300000, Pengeluaran: 50000 },
-      { date: "14:00", Pemasukan: 400000, Pengeluaran: 250000 },
-      { date: "16:00", Pemasukan: 100000, Pengeluaran: 0 },
-    ]
-  },
-  "minggu_ini": {
-    pemasukan: 6500000,
-    pengeluaran: 2100000,
-    laba: 4400000,
-    pemasukanTren: "+5% dari minggu lalu",
-    pengeluaranTren: "+2% dari minggu lalu",
-    chart: [
-      "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"
-    ].map((day, i) => ({
-      date: day,
-      Pemasukan: Math.round(1200000 + Math.sin(i * 0.5) * 400000 + i * 150000),
-      Pengeluaran: Math.round(400000 + Math.cos(i * 0.5) * 200000 + i * 50000)
-    }))
-  },
-  "bulan_ini": {
-    pemasukan: 13100000,
-    pengeluaran: 5500000,
-    laba: 7600000,
-    pemasukanTren: "+12% dari bulan lalu",
-    pengeluaranTren: "↘ 3% dari bulan lalu",
-    chart: Array.from({ length: 31 }, (_, i) => ({
-      date: `${(i + 1).toString().padStart(2, '0')} Mei`,
-      Pemasukan: Math.round(1200000 + Math.sin(i * 0.3) * 400000 + i * 80000),
-      Pengeluaran: Math.round(400000 + Math.cos(i * 0.4) * 150000 + i * 30000)
-    }))
-  },
-  "tahun_ini": {
-    pemasukan: 145000000,
-    pengeluaran: 65000000,
-    laba: 80000000,
-    pemasukanTren: "+25% dari tahun lalu",
-    pengeluaranTren: "+10% dari tahun lalu",
-    chart: [
-      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"
-    ].map((month, i) => ({
-      date: month,
-      Pemasukan: Math.round(22000000 + Math.sin(i * 0.5) * 5000000 + i * 2000000),
-      Pengeluaran: Math.round(10000000 + Math.cos(i * 0.5) * 2000000 + i * 800000)
-    }))
-  }
-};
-
-const recentTransactionsData = [
-  { id: 1, date: "Hari ini, 14:30", desc: "Penjualan Toko", category: "Pendapatan", amount: 1500000, type: "income" },
-  { id: 2, date: "Kemarin, 09:15", desc: "Beli Bahan Baku", category: "Operasional", amount: 450000, type: "expense" },
-  { id: 3, date: "21 Mei 2026", desc: "Tagihan Listrik", category: "Utilitas", amount: 250000, type: "expense" },
-  { id: 4, date: "20 Mei 2026", desc: "Pesanan Katering", category: "Pendapatan", amount: 3000000, type: "income" },
-  { id: 5, date: "18 Mei 2026", desc: "Biaya Iklan IG", category: "Pemasaran", amount: 150000, type: "expense" },
-];
+// Data fetch dari API Backend Arta
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
@@ -91,13 +28,18 @@ const Dashboard = () => {
   const { t } = useTranslation();
 
   const [filterWaktu, setFilterWaktu] = useState("bulan_ini");
+  
+  // Data dari API
+  const [dashboardData, setDashboardData] = useState(null);
+  const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
 
     const storedProfile = localStorage.getItem("profile");
-    if (storedProfile) setProfile(JSON.parse(storedProfile));
+    const prof = storedProfile ? JSON.parse(storedProfile) : null;
+    if (prof) setProfile(prof);
 
     // Cek flag popup setelah klik "Mulai Rencana Bisnis"
     const shouldPrompt = localStorage.getItem("show_profile_prompt");
@@ -110,8 +52,24 @@ const Dashboard = () => {
       localStorage.removeItem("new_business_name");
     }
 
-    setLoading(false);
-  }, []);
+    if (prof?.user_type === "umkm_aktif") {
+      setLoading(true);
+      api.get(`/api/dashboard/overview?range=${filterWaktu}`)
+        .then(res => {
+          setDashboardData(res.data);
+          setApiError(null);
+        })
+        .catch(err => {
+          console.error("Gagal mengambil data dashboard:", err);
+          setApiError(err.response?.data?.message || "Gagal mengambil data. Server mungkin sedang offline.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, [filterWaktu]);
 
   const handleDismissPrompt = () => setShowProfilePrompt(false);
   const handleGoToProfile = () => {
@@ -275,32 +233,38 @@ const Dashboard = () => {
           </Link>
         </div>
 
+        {apiError && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl relative z-10 font-medium flex items-center gap-2">
+            <FiX /> {apiError}
+          </div>
+        )}
+
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
           <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
             <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">{t('dashboard.income')}</p>
-            <h3 className="text-3xl font-black text-slate-800 mb-4 relative z-10">{formatRupiah(dummyDataByRange[filterWaktu].pemasukan)}</h3>
+            <h3 className="text-3xl font-black text-slate-800 mb-4 relative z-10">{formatRupiah(dashboardData?.summary?.income || 0)}</h3>
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 w-fit px-3 py-1.5 rounded-lg relative z-10">
-              <FiArrowUpRight size={14} /> {dummyDataByRange[filterWaktu].pemasukanTren}
+              <FiArrowUpRight size={14} /> {dashboardData?.summary?.income_change || 0}% dari periode lalu
             </div>
           </div>
 
           <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/30 relative overflow-hidden group">
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-rose-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
             <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">{t('dashboard.expense')}</p>
-            <h3 className="text-3xl font-black text-slate-800 mb-4 relative z-10">{formatRupiah(dummyDataByRange[filterWaktu].pengeluaran)}</h3>
+            <h3 className="text-3xl font-black text-slate-800 mb-4 relative z-10">{formatRupiah(dashboardData?.summary?.expense || 0)}</h3>
             <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 w-fit px-3 py-1.5 rounded-lg relative z-10">
-              <FiArrowDownRight size={14} /> {dummyDataByRange[filterWaktu].pengeluaranTren}
+              <FiArrowDownRight size={14} /> {dashboardData?.summary?.expense_change || 0}% dari periode lalu
             </div>
           </div>
 
           <div className="bg-[#0B1221] p-8 rounded-[2rem] shadow-2xl relative overflow-hidden text-white">
             <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500 opacity-20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
             <p className="text-xs font-bold tracking-widest uppercase text-slate-400 mb-2 relative z-10">{t("dashboard.net_profit")}</p>
-            <h3 className="text-3xl font-black mb-4 relative z-10 text-white">{formatRupiah(dummyDataByRange[filterWaktu].laba)}</h3>
+            <h3 className="text-3xl font-black mb-4 relative z-10 text-white">{formatRupiah(dashboardData?.summary?.net_profit || 0)}</h3>
             <div className="flex items-center gap-2 text-xs font-bold text-teal-400 bg-teal-400/10 border border-teal-400/20 w-fit px-3 py-1.5 rounded-lg relative z-10">
-              <FiActivity size={14} /> {dummyDataByRange[filterWaktu].laba >= 0 ? t("dashboard.status_healthy") : "Perlu Perhatian"}
+              <FiActivity size={14} /> {dashboardData?.summary?.health_status || "Belum ada status"}
             </div>
           </div>
         </div>
@@ -318,7 +282,7 @@ const Dashboard = () => {
           </div>
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dummyDataByRange[filterWaktu].chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={dashboardData?.chart_data || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorP" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
@@ -338,8 +302,8 @@ const Dashboard = () => {
                   itemStyle={{ fontWeight: 'bold' }}
                   labelStyle={{ color: '#64748b', marginBottom: '8px', fontWeight: 'bold' }}
                 />
-                <Area type="monotone" dataKey="Pemasukan" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorP)" />
-                <Area type="monotone" dataKey="Pengeluaran" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorE)" />
+                <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorP)" />
+                <Area type="monotone" dataKey="expense" stroke="#f43f5e" strokeWidth={4} fillOpacity={1} fill="url(#colorE)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -357,7 +321,7 @@ const Dashboard = () => {
               <h4 className="text-sm font-bold text-indigo-900 mb-0.5">{t('dashboard.ai_prediction_title')}</h4>
               <p className="text-sm text-indigo-700 font-medium leading-relaxed">
                 <Trans i18nKey="dashboard.ai_prediction_desc">
-                  Arus kas Anda diprediksi akan stabil minggu depan dengan potensi surplus <strong>15%</strong>. Lihat detail prediksi untuk panduan alokasi dana.
+                  Lihat potensi arus kas bisnis Anda di masa depan dengan model AI prediktif kami.
                 </Trans>
               </p>
             </div>
@@ -386,15 +350,19 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {recentTransactionsData.map((tx) => (
-                  <tr key={tx.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                {(!dashboardData?.recent_transactions || dashboardData.recent_transactions.length === 0) ? (
+                  <tr>
+                    <td colSpan="4" className="py-8 text-center text-slate-500 font-medium">Belum ada transaksi. Mulai catat transaksi pertama Anda!</td>
+                  </tr>
+                ) : dashboardData.recent_transactions.map((tx) => (
+                  <tr key={tx.id || Math.random()} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
                     <td className="py-4 px-4 text-sm font-medium text-slate-500 whitespace-nowrap">{tx.date}</td>
-                    <td className="py-4 px-4 text-sm font-bold text-slate-800">{tx.desc}</td>
+                    <td className="py-4 px-4 text-sm font-bold text-slate-800">{tx.description || tx.desc}</td>
                     <td className="py-4 px-4">
                       <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">{tx.category}</span>
                     </td>
-                    <td className={`py-4 px-4 text-sm font-black text-right whitespace-nowrap ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {tx.type === 'income' ? '+' : '-'} {formatRupiah(tx.amount)}
+                    <td className={`py-4 px-4 text-sm font-black text-right whitespace-nowrap ${(tx.type || "").toLowerCase() === 'pemasukan' || tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {(tx.type || "").toLowerCase() === 'pemasukan' || tx.type === 'income' ? '+' : '-'} {formatRupiah(tx.amount)}
                     </td>
                   </tr>
                 ))}

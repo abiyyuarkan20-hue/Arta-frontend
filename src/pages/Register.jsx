@@ -60,7 +60,7 @@ const Register = () => {
         password: formData.password,
         options: {
           data: {
-            full_name: formData.nama,
+            nama_lengkap: formData.nama,
           },
         },
       });

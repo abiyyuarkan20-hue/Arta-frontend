@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation, Trans } from "react-i18next";
 import {
   FiDownload, FiArrowUpRight, FiArrowDownRight, FiPieChart,
-  FiTrendingUp, FiTrendingDown, FiZap, FiFileText, FiChevronDown
+  FiTrendingUp, FiTrendingDown, FiZap, FiFileText, FiChevronDown, FiAlertCircle
 } from "react-icons/fi";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -12,72 +12,7 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-
-// --- DYNAMIC DATA GENERATOR ---
-const generateTransactions = (range) => {
-  const now = new Date();
-  const transactions = [];
-  let id = 1;
-
-  const incCats = ["Penjualan Produk", "Penjualan Jasa", "Pendapatan Lainnya"];
-  const expCats = ["Bahan Baku", "Gaji Karyawan", "Operasional", "Pemasaran", "Sewa Tempat", "Peralatan"];
-
-  const add = (date, desc, category, type, amount) => {
-    transactions.push({ id: id++, date: date.toISOString().split('T')[0], description: desc, category, type, amount: Math.round(amount) });
-  };
-
-  if (range === "last_7_days") {
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i);
-      const f = Math.sin(i * 0.8) * 0.3 + 1;
-      add(d, "Penjualan Harian", incCats[i % 3], "Pemasukan", (900000 + i * 130000) * f);
-      if (i % 2 === 0) add(d, "Belanja Operasional", expCats[i % 6], "Pengeluaran", (350000 + i * 60000) * f);
-      if (i === 3) add(d, "Gaji Karyawan", "Gaji Karyawan", "Pengeluaran", 2500000);
-      if (i === 5) add(d, "Jasa Konsultasi", "Penjualan Jasa", "Pemasukan", 1200000);
-    }
-  } else if (range === "this_month") {
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const currentDay = now.getDate();
-    for (let i = 1; i <= Math.min(currentDay, daysInMonth); i++) {
-      const d = new Date(now.getFullYear(), now.getMonth(), i);
-      const wave = Math.sin(i * 0.2) * 0.4 + 1;
-      add(d, "Penjualan", incCats[i % 3], "Pemasukan", (650000 + i * 45000) * wave);
-      if (i % 3 === 0) add(d, "Operasional", expCats[i % 6], "Pengeluaran", (220000 + i * 18000) * wave);
-      if (i === 5) add(d, "Sewa Tempat", "Sewa Tempat", "Pengeluaran", 3500000);
-      if (i === 12) add(d, "Gaji Karyawan", "Gaji Karyawan", "Pengeluaran", 2500000);
-      if (i === 8) add(d, "Jasa Desain", "Penjualan Jasa", "Pemasukan", 2800000);
-      if (i === 15) add(d, "Iklan Digital", "Pemasaran", "Pengeluaran", 750000);
-    }
-  } else if (range === "last_month") {
-    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const daysInLM = new Date(lm.getFullYear(), lm.getMonth() + 1, 0).getDate();
-    for (let i = 1; i <= daysInLM; i++) {
-      const d = new Date(lm.getFullYear(), lm.getMonth(), i);
-      const wave = Math.cos(i * 0.15) * 0.3 + 0.9;
-      add(d, "Penjualan", incCats[i % 3], "Pemasukan", (520000 + i * 32000) * wave);
-      if (i % 4 === 0) add(d, "Pengeluaran Rutin", expCats[i % 6], "Pengeluaran", (190000 + i * 14000) * wave);
-      if (i === 10) add(d, "Sewa Tempat", "Sewa Tempat", "Pengeluaran", 3500000);
-      if (i === 15) add(d, "Gaji Karyawan", "Gaji Karyawan", "Pengeluaran", 2500000);
-      if (i === 20) add(d, "Jasa Katering", "Penjualan Jasa", "Pemasukan", 1800000);
-    }
-  } else if (range === "this_year") {
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-    const currentMonth = now.getMonth();
-    for (let m = 0; m <= currentMonth; m++) {
-      const d = new Date(now.getFullYear(), m, 15);
-      const growth = 1 + m * 0.05;
-      const season = Math.sin(m * 0.5) * 0.2 + 1;
-      add(d, `Penjualan ${monthNames[m]}`, incCats[m % 3], "Pemasukan", 8500000 * growth * season);
-      add(d, `Jasa ${monthNames[m]}`, "Penjualan Jasa", "Pemasukan", 3200000 * growth * season);
-      add(d, `Bahan Baku ${monthNames[m]}`, "Bahan Baku", "Pengeluaran", 2600000 * growth);
-      add(d, `Gaji ${monthNames[m]}`, "Gaji Karyawan", "Pengeluaran", 2500000);
-      add(d, `Operasional ${monthNames[m]}`, "Operasional", "Pengeluaran", 850000 * growth);
-      if (m % 3 === 0) add(d, `Sewa ${monthNames[m]}`, "Sewa Tempat", "Pengeluaran", 3500000);
-      if (m % 2 === 0) add(d, `Pemasaran ${monthNames[m]}`, "Pemasaran", "Pengeluaran", 550000 * growth);
-    }
-  }
-  return transactions;
-};
+import transactionService from "../services/transactionService";
 
 const categoryColors = {
   "Penjualan Produk": "#10b981",
@@ -97,58 +32,73 @@ const categoryColors = {
 export default function Reports() {
   const { t } = useTranslation();
   const [dateRange, setDateRange] = useState("this_month");
+  
+  const [reportData, setReportData] = useState(null);
+  const [activeTransactions, setActiveTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
 
   const formatRupiah = (number) => {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number);
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
   };
 
-  // Dynamic transactions based on range
-  const activeTransactions = useMemo(() => generateTransactions(dateRange), [dateRange]);
-
-  // Metrics
-  const metrics = useMemo(() => {
-    let income = 0, expense = 0;
-    activeTransactions.forEach(trx => {
-      if (trx.type === "Pemasukan") income += trx.amount;
-      else expense += trx.amount;
-    });
-    return { income, expense, balance: income - expense };
-  }, [activeTransactions]);
-
-  // Simulated trend comparison
-  const trends = useMemo(() => {
-    const map = {
-      "last_7_days": { income: "+8.2%", expense: "+3.5%", incomeUp: true, expenseUp: true },
-      "this_month": { income: "+12.5%", expense: "+3.2%", incomeUp: true, expenseUp: true },
-      "last_month": { income: "-2.1%", expense: "+1.8%", incomeUp: false, expenseUp: true },
-      "this_year": { income: "+32.5%", expense: "+18.0%", incomeUp: true, expenseUp: true },
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setApiError(null);
+      try {
+        const [reportsRes, txRes] = await Promise.all([
+          transactionService.getReports({ range: dateRange }),
+          transactionService.getTransactions({ range: dateRange }).catch(() => ({ data: [] }))
+        ]);
+        
+        const rData = reportsRes.data?.data || reportsRes.data || {};
+        setReportData(rData);
+        
+        const tData = txRes.data?.data || txRes.data || [];
+        setActiveTransactions(Array.isArray(tData) ? tData : (tData.transactions || []));
+      } catch (err) {
+        console.error("Gagal fetch laporan:", err);
+        setApiError(err.response?.data?.message || err.message);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    return map[dateRange] || map["this_month"];
+    fetchData();
   }, [dateRange]);
 
-  // Chart data grouped appropriately
+  // Metrics from API
+  const metrics = useMemo(() => {
+    return {
+      income: reportData?.summary?.total_income || 0,
+      expense: reportData?.summary?.total_expense || 0,
+      balance: reportData?.summary?.net_profit || 0
+    };
+  }, [reportData]);
+
+  // Trends from API
+  const trends = useMemo(() => {
+    const incChange = reportData?.summary?.income_change_percent || 0;
+    const expChange = reportData?.summary?.expense_change_percent || 0;
+    return {
+      income: (incChange > 0 ? "+" : "") + incChange + "%",
+      expense: (expChange > 0 ? "+" : "") + expChange + "%",
+      incomeUp: incChange >= 0,
+      expenseUp: expChange >= 0
+    };
+  }, [reportData]);
+
+  const profitMargin = reportData?.summary?.profit_margin_percent || 0;
+  const healthStatus = reportData?.summary?.health_status || "Belum Ada Data";
+
+  // Chart data from API
   const cashFlowData = useMemo(() => {
-    if (dateRange === "this_year") {
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-      const grouped = {};
-      activeTransactions.forEach(trx => {
-        const d = new Date(trx.date);
-        const key = monthNames[d.getMonth()];
-        if (!grouped[key]) grouped[key] = { date: key, Pemasukan: 0, Pengeluaran: 0, order: d.getMonth() };
-        grouped[key][trx.type] += trx.amount;
-      });
-      return Object.values(grouped).sort((a, b) => a.order - b.order);
-    } else {
-      const grouped = {};
-      activeTransactions.forEach(trx => {
-        const d = new Date(trx.date);
-        const label = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-        if (!grouped[trx.date]) grouped[trx.date] = { date: label, Pemasukan: 0, Pengeluaran: 0, sortKey: trx.date };
-        grouped[trx.date][trx.type] += trx.amount;
-      });
-      return Object.values(grouped).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-    }
-  }, [activeTransactions, dateRange]);
+    return (reportData?.daily_cashflow || []).map(item => ({
+      date: item.date,
+      Pemasukan: item.income,
+      Pengeluaran: item.expense
+    }));
+  }, [reportData]);
 
   // Dynamic chart title
   const chartTitle = useMemo(() => {
@@ -161,35 +111,17 @@ export default function Reports() {
     return titles[dateRange] || t('reports.daily_cashflow');
   }, [dateRange, t]);
 
-  // Expense Pie data
+  // Expense Pie data from API
   const expenseData = useMemo(() => {
-    const grouped = {};
-    activeTransactions.filter(tr => tr.type === "Pengeluaran").forEach(trx => {
-      if (!grouped[trx.category]) grouped[trx.category] = 0;
-      grouped[trx.category] += trx.amount;
-    });
-    return Object.keys(grouped).map(key => ({
-      name: key,
-      value: Math.round(grouped[key])
+    return (reportData?.expense_distribution || []).map(item => ({
+      name: item.category,
+      value: item.amount
     })).sort((a, b) => b.value - a.value);
-  }, [activeTransactions]);
+  }, [reportData]);
 
-  // AI Insights data
-  const topExpense = expenseData.length > 0 ? expenseData[0] : null;
-  const secondExpense = expenseData.length > 1 ? expenseData[1] : null;
-
-  const topIncome = useMemo(() => {
-    const grouped = {};
-    activeTransactions.filter(tr => tr.type === "Pemasukan").forEach(trx => {
-      if (!grouped[trx.category]) grouped[trx.category] = 0;
-      grouped[trx.category] += trx.amount;
-    });
-    const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
-    return sorted.length > 0 ? { name: sorted[0][0], value: sorted[0][1] } : null;
-  }, [activeTransactions]);
-
-  // Profit margin percentage
-  const profitMargin = metrics.income > 0 ? ((metrics.balance / metrics.income) * 100).toFixed(1) : "0";
+  // AI Insights from API
+  const expenseInsight = reportData?.insights?.expense_insight || t('reports.insight_no_data');
+  const incomeInsight = reportData?.insights?.income_insight || t('reports.insight_no_data');
 
   // --- EXPORT FUNCTIONS ---
   const handleExportExcel = async () => {
@@ -335,6 +267,14 @@ export default function Reports() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
+    
+      {/* Error Banner */}
+      {apiError && !isLoading && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3">
+          <FiAlertCircle className="text-rose-500 shrink-0" size={20} />
+          <p className="text-sm font-semibold text-rose-700">{apiError}</p>
+        </div>
+      )}
 
       {/* 1. Header & Actions */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
@@ -417,7 +357,7 @@ export default function Reports() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-indigo-200">{t('reports.profit_margin')}: {profitMargin}%</span>
               <span className="text-xs font-medium text-indigo-200 bg-white/10 px-2 py-0.5 rounded-md">
-                {metrics.balance >= 0 ? t('reports.condition_healthy') : t('reports.condition_warning')}
+                {healthStatus}
               </span>
             </div>
           </div>
@@ -435,32 +375,12 @@ export default function Reports() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white/60 p-4 rounded-xl border border-white shadow-sm">
             <p className="text-sm text-slate-700 font-medium leading-relaxed">
-              {topExpense && secondExpense ? (
-                <>
-                  {t('reports.insight_expense_prefix')}{' '}
-                  <span className="font-bold text-rose-600">{topExpense.name}</span> ({formatRupiah(topExpense.value)})
-                  {' '}{t('reports.insight_and')}{' '}
-                  <span className="font-bold text-amber-600">{secondExpense.name}</span> ({formatRupiah(secondExpense.value)}).
-                </>
-              ) : t('reports.insight_no_data')}
+              {expenseInsight}
             </p>
           </div>
           <div className="bg-white/60 p-4 rounded-xl border border-white shadow-sm">
             <p className="text-sm text-slate-700 font-medium leading-relaxed">
-              {metrics.balance >= 0 ? (
-                <>
-                  {t('reports.insight_positive')}{' '}
-                  {topIncome && (
-                    <>
-                      {t('reports.insight_top_income')}{' '}
-                      <span className="font-bold text-emerald-600">{topIncome.name}</span>{' '}
-                      ({formatRupiah(topIncome.value)}).
-                    </>
-                  )}
-                </>
-              ) : (
-                <span className="text-rose-600 font-bold">{t('reports.insight_negative')}</span>
-              )}
+              {incomeInsight}
             </p>
           </div>
         </div>

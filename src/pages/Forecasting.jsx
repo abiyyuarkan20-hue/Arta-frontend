@@ -1,38 +1,42 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { FiTrendingUp, FiAlertTriangle, FiCpu, FiCalendar } from "react-icons/fi";
+import { FiTrendingUp, FiAlertTriangle, FiCpu, FiCalendar, FiAlertCircle } from "react-icons/fi";
+import transactionService from "../services/transactionService";
 
-const formatRp = (num) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num);
+const formatRp = (num) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(num || 0);
 
 export default function Forecasting() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [forecastData, setForecastData] = useState([]);
+  const [recommendation, setRecommendation] = useState("");
+  const [confidenceInterval, setConfidenceInterval] = useState(85);
+  const [modelUsed, setModelUsed] = useState("LSTM");
+  const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
-    // Simulasi memanggil Microservice FastAPI tim AI
     const fetchAIForecast = async () => {
       setLoading(true);
+      setApiError(null);
       try {
-        // Mock delay seolah-olah inference AI berjalan (misal: ARIMA / LSTM model)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const res = await transactionService.getForecast();
+        const data = res.data?.data || res.data || {};
         
-        // Mock data historis + prediksi (Juni)
-        const mockData = [
-          { date: "01 Jun", Aktual: 1500000, Prediksi: null },
-          { date: "05 Jun", Aktual: 1800000, Prediksi: null },
-          { date: "10 Jun", Aktual: 1600000, Prediksi: 1600000 }, // Titik temu
-          { date: "15 Jun", Aktual: null, Prediksi: 2200000 },
-          { date: "20 Jun", Aktual: null, Prediksi: 1900000 },
-          { date: "25 Jun", Aktual: null, Prediksi: 2800000 },
-          { date: "30 Jun", Aktual: null, Prediksi: 3100000 },
-        ];
-
-        setForecastData(mockData);
-        setLoading(false);
+        const mappedData = (data.forecast_data || []).map(item => ({
+          date: item.date,
+          Aktual: item.actual,
+          Prediksi: item.predicted
+        }));
+        
+        setForecastData(mappedData);
+        setRecommendation(data.recommendation || t('forecasting.ai_strategy_desc'));
+        setConfidenceInterval(data.confidence_interval || 85);
+        setModelUsed(data.model_used || "LSTM");
       } catch (err) {
-        console.error("Gagal mengambil prediksi AI");
+        console.error("Gagal mengambil prediksi AI:", err);
+        setApiError(err.response?.data?.message || err.message);
+      } finally {
         setLoading(false);
       }
     };
@@ -40,15 +44,26 @@ export default function Forecasting() {
     fetchAIForecast();
   }, []);
 
+  // Temukan titik persimpangan (hari ini) di mana data aktual dan prediksi bertemu
+  const todaySplitDate = forecastData.find(d => d.Aktual !== null && d.Prediksi !== null)?.date || "10 Jun";
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
+      {/* Error Banner */}
+      {apiError && !loading && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3 mb-6">
+          <FiAlertCircle className="text-rose-500 shrink-0" size={20} />
+          <p className="text-sm font-semibold text-rose-700">{apiError}</p>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{t('forecasting.title')}</h1>
           <p className="text-slate-500 font-medium mt-1">{t('forecasting.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100 shadow-sm">
-          <FiCpu className="animate-pulse" /> {t('forecasting.active_model')}
+          <FiCpu className="animate-pulse" /> Model AI Aktif ({modelUsed})
         </div>
       </div>
 
@@ -68,7 +83,7 @@ export default function Forecasting() {
             </div>
             <div className="relative z-10">
               <h3 className="font-black text-lg mb-1">{t('forecasting.ai_strategy')}</h3>
-              <p className="text-indigo-100 font-medium leading-relaxed">{t('forecasting.ai_strategy_desc')}</p>
+              <p className="text-indigo-100 font-medium leading-relaxed">{recommendation}</p>
             </div>
           </div>
 
@@ -81,7 +96,7 @@ export default function Forecasting() {
                   </div>
                   <div>
                     <h3 className="font-black text-slate-800">{t('forecasting.projection_chart_title')}</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('forecasting.confidence_interval')}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">CONFIDENCE INTERVAL {confidenceInterval}%</p>
                   </div>
                 </div>
                 
@@ -127,7 +142,7 @@ export default function Forecasting() {
                     />
                     
                     {/* Garis vertikal pembatas Masa Lalu & Prediksi (10 Jun) */}
-                    <ReferenceLine x="10 Jun" stroke="#cbd5e1" strokeDasharray="5 5" label={{ position: 'top', value: t('forecasting.today'), fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} />
+                    <ReferenceLine x={todaySplitDate} stroke="#cbd5e1" strokeDasharray="5 5" label={{ position: 'top', value: t('forecasting.today'), fill: '#64748b', fontSize: 12, fontWeight: 'bold' }} />
                     
                     <Area 
                       type="monotone" 
