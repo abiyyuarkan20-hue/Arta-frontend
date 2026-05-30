@@ -46,6 +46,11 @@ const Login = () => {
         localStorage.setItem("token", data.session.access_token);
         console.log("[DEBUG LOGIN] Token JWT berhasil disimpan ke localStorage.");
       }
+      
+      // Simpan data.user ke localStorage agar dapat dibaca di Profile.jsx dan Layout.jsx
+      if (data?.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
 
       console.log("[DEBUG LOGIN] Akan melakukan GET Profile setelah token masuk localStorage.");
 

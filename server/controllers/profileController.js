@@ -20,7 +20,7 @@ const getProfile = async (req, res) => {
         .from("profiles")
         .insert({
           id: userId,
-          nama_lengkap: req.user.user_metadata?.nama_lengkap || "",
+          nama_lengkap: req.user.user_metadata?.nama_lengkap || req.user.user_metadata?.full_name || "",
         })
         .select()
         .single();

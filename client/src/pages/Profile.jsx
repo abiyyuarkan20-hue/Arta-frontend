@@ -115,7 +115,7 @@ export default function Profile() {
         const user = JSON.parse(storedUser);
         setProfile((prev) => ({
           ...prev,
-          namaLengkap: user?.user_metadata?.nama_lengkap || "",
+          namaLengkap: user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || "",
           email: user?.email || "",
           telepon: user?.user_metadata?.telepon || "",
           bio: user?.user_metadata?.bio || "",
@@ -141,11 +141,13 @@ export default function Profile() {
   const handleChange = (field) => (e) =>
     setProfile((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handleSave = () => {
-    // Simulasi validasi password (UI prototype)
-    if (passwordData.oldPassword || passwordData.newPassword || passwordData.confirmNewPassword) {
-      if (passwordData.oldPassword !== "admin123") { // Dummy password lama untuk demo UI
-        setPasswordError("Password yang Anda masukkan salah");
+  const handleSave = async () => {
+    // Cek apakah user sedang mencoba mengganti password
+    const isChangingPassword = passwordData.oldPassword || passwordData.newPassword || passwordData.confirmNewPassword;
+
+    if (isChangingPassword) {
+      if (!passwordData.oldPassword) {
+        setPasswordError("Kata sandi lama wajib diisi");
         return;
       }
       if (!pwdCriteria.length || !pwdCriteria.uppercase || !pwdCriteria.number) {
@@ -161,28 +163,62 @@ export default function Profile() {
     if (saveStatus === "saving") return;
     setSaveStatus("saving");
 
-    // Simulate API call; persist to localStorage
-    setTimeout(() => {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        const updatedUser = {
-          ...user,
+    try {
+      const { supabase } = await import("../services/supabaseClient");
+
+      // 1. Jika ganti password, verifikasi password lama dengan mencoba re-login
+      if (isChangingPassword) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: profile.email,
-          user_metadata: {
-            ...user.user_metadata,
-            nama_lengkap: profile.namaLengkap,
-            telepon: profile.telepon,
-            bio: profile.bio,
-            ...(avatarPreview ? { avatar: avatarPreview } : {}),
-          },
-        };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+          password: passwordData.oldPassword
+        });
+        
+        if (signInError) {
+          setPasswordError("Password yang Anda masukkan salah");
+          setSaveStatus("idle");
+          return;
+        }
+      }
+
+      // 2. Siapkan payload update untuk Supabase Auth
+      const updatePayload = {
+        data: {
+          nama_lengkap: profile.namaLengkap,
+          telepon: profile.telepon,
+          bio: profile.bio,
+          ...(avatarPreview ? { avatar: avatarPreview } : {}),
+        }
+      };
+
+      if (isChangingPassword) {
+        updatePayload.password = passwordData.newPassword;
+      }
+
+      // 3. Jalankan Update
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser(updatePayload);
+
+      if (updateError) throw updateError;
+
+      // 4. Update LocalStorage dan Dispatch Event
+      if (updateData?.user) {
+        localStorage.setItem("user", JSON.stringify(updateData.user));
         window.dispatchEvent(new Event("profileUpdated"));
       }
+
+      // 5. Reset state password jika berhasil ganti password
+      if (isChangingPassword) {
+        setPasswordData({ oldPassword: "", newPassword: "", confirmNewPassword: "" });
+        setPasswordError("");
+      }
+
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
-    }, 1500);
+
+    } catch (error) {
+      console.error("Gagal menyimpan profil:", error);
+      alert("Gagal menyimpan perubahan: " + error.message);
+      setSaveStatus("idle");
+    }
   };
 
   const initials = profile.namaLengkap

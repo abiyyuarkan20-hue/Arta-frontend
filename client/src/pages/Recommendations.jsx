@@ -199,6 +199,7 @@ const Recommendations = () => {
       };
 
       const res = await api.post("/api/feasibility-tests", payload);
+      console.log("[DEBUG] RESPONSE VERCEL ASLI:", res.data);
       setAiResults(res.data);
       setPerintisPhase(4);
     } catch (err) {
@@ -301,19 +302,19 @@ const Recommendations = () => {
 
   /* ───── FASE 4: HASIL ───── */
   if (perintisPhase === 4 && aiResults) {
-    const { ai_prediction, saved_data } = aiResults;
-    const { feasibility_score, status, recommendation } = ai_prediction;
+    const { ai_prediction = {}, saved_data = {} } = aiResults;
+    const { feasibility_score = 0, status = "Tidak Diketahui", recommendation = "Hasil tidak tersedia." } = ai_prediction;
     
-    const modalAwalNum = saved_data.initial_capital;
-    const toolsPct = saved_data.tools_materials_percentage;
-    const mktPct = saved_data.marketing_percentage;
+    const modalAwalNum = saved_data.initial_capital || 0;
+    const toolsPct = saved_data.tools_materials_percentage || 0;
+    const mktPct = saved_data.marketing_percentage || 0;
     const otherPct = Math.max(0, 100 - toolsPct - mktPct);
 
     const capex = (modalAwalNum * toolsPct) / 100;
     const pemasaran = (modalAwalNum * mktPct) / 100;
     const opex = (modalAwalNum * otherPct) / 100;
 
-    const targetBulanNum = saved_data.roi_target_months;
+    const targetBulanNum = saved_data.roi_target_months || 1;
     const targetProfitBulanan = modalAwalNum / targetBulanNum;
 
     const allocations = [
@@ -322,7 +323,7 @@ const Recommendations = () => {
       { name: 'Operasional Lainnya', value: opex },
     ];
 
-    const isLayak = status.toLowerCase() === "layak";
+    const isLayak = status && typeof status === 'string' ? status.toLowerCase() === "layak" : false;
 
     return (
       <div className="max-w-6xl mx-auto pb-20 animate-fade-in mt-4">
@@ -379,13 +380,63 @@ const Recommendations = () => {
               </div>
 
               {/* Footer Buttons */}
-              <div className="p-5 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
-                <button disabled={isUpgrading} onClick={() => {
-                  alert("Fitur simpan draft rencana bisnis belum diaktifkan dalam demo ini.");
-                }}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#111111] hover:bg-black text-white py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-md disabled:opacity-70">
-                  {isUpgrading ? "Memproses..." : "Lanjut Buat Rencana Bisnis"} <FiArrowRight />
-                </button>
+              <div className="p-5 bg-slate-50 border-t border-slate-100 flex flex-col gap-4">
+                
+                {isUpgrading ? (
+                  <form 
+                    className="flex flex-col gap-3"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const namaUsaha = e.target.nama_usaha.value;
+                      if (!namaUsaha) return;
+                      
+                      try {
+                        const res = await api.post("/api/profile/upgrade", {
+                          nama_usaha: namaUsaha,
+                          tipe_usaha: saved_data.business_sector || "Umum",
+                          lama_usaha: "< 1 Tahun"
+                        });
+                        
+                        // Update local storage profile
+                        if (res.data?.data?.profile) {
+                          localStorage.setItem("profile", JSON.stringify(res.data.data.profile));
+                        }
+                        
+                        // Redirect ke dashboard
+                        window.location.href = "/dashboard";
+                        
+                      } catch (err) {
+                        console.error(err);
+                        alert("Gagal membuat rencana bisnis. " + (err.response?.data?.message || err.message));
+                      }
+                    }}
+                  >
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1">Nama Usaha Baru Anda <span className="text-red-500">*</span></label>
+                      <input 
+                        type="text" 
+                        name="nama_usaha"
+                        required
+                        placeholder="Contoh: Toko Berkah, Jasa Fotografi..." 
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setIsUpgrading(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 bg-slate-200 hover:bg-slate-300 transition-colors">
+                        Batal
+                      </button>
+                      <button type="submit" className="flex-1 px-4 py-2 rounded-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+                        Simpan & Buka Dashboard UMKM
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <button onClick={() => setIsUpgrading(true)}
+                    className="w-full flex items-center justify-center gap-2 bg-[#111111] hover:bg-black text-white py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-md">
+                    Lanjut Buat Rencana Bisnis <FiArrowRight />
+                  </button>
+                )}
+                
               </div>
             </div>
             
@@ -406,7 +457,7 @@ const Recommendations = () => {
               <h3 className="text-lg font-black text-slate-800 mb-1 flex items-center gap-2"><FiPieChart className="text-teal-500" /> Simulasi Anggaran</h3>
               <p className="text-slate-500 text-xs font-medium mb-6">Total Modal (Rencana): Rp {modalAwalNum.toLocaleString('id-ID')}</p>
               <div className="h-52 w-full mb-4">
-                <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={allocations} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={4} dataKey="value" stroke="none">
                       {allocations.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}

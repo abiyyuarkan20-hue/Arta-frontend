@@ -79,7 +79,7 @@ const Layout = () => {
     return () => window.removeEventListener("profileUpdated", loadUserData);
   }, []);
 
-  const fullName = profile?.nama_lengkap || user?.user_metadata?.nama_lengkap || "Admin Usaha";
+  const fullName = profile?.nama_lengkap || user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || "Admin Usaha";
   const email = user?.email || "admin@artha.id";
   const initials = fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
