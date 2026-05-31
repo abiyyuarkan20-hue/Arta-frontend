@@ -3,8 +3,8 @@ import { supabase } from "./supabaseClient";
 
 // Membuat instance axios dengan konfigurasi dasar
 const api = axios.create({
-  // Base URL mengarah ke backend Vercel
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://arta-backend-nine.vercel.app",
+  // Dev: proxy Vite menangani /api → Vercel. Build: langsung ke VITE_API_BASE_URL.
+  baseURL: import.meta.env.DEV ? "" : (import.meta.env.VITE_API_BASE_URL || "https://arta-backend-nine.vercel.app"),
   headers: {
     "Content-Type": "application/json",
   },

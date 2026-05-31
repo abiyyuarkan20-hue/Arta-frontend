@@ -5,6 +5,15 @@ import tailwindcss from "@tailwindcss/vite"; // Tambahkan ini
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(), // Tambahkan ini
+    tailwindcss(),
   ],
+  server: {
+    proxy: {
+      "/api": {
+        target: "https://arta-backend-nine.vercel.app",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });

@@ -19,6 +19,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import logoImg from "../assets/logo-2.png";
+import { supabase } from "../services/supabaseClient";
 
 const Layout = () => {
   const location = useLocation();
@@ -117,7 +118,12 @@ const Layout = () => {
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Error signing out from Supabase:", err);
+    }
     // Hapus data dari penyimpanan lokal
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");

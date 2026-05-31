@@ -319,38 +319,37 @@ export default function Reports() {
       {/* 2. Executive Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Income */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-          <div className="relative z-10">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex items-center justify-between">
+          <div>
             <p className="text-sm font-bold text-slate-500 mb-1">{t('reports.total_income')}</p>
             <h3 className="text-3xl font-black text-emerald-600 mb-2">{formatRupiah(metrics.income)}</h3>
-            <div className={`flex items-center gap-1.5 text-xs font-bold ${trends.incomeUp ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'} w-fit px-2 py-1 rounded-md`}>
-              {trends.incomeUp ? <FiTrendingUp /> : <FiTrendingDown />}
+            <div className={`flex items-center gap-1.5 text-xs font-bold ${trends.incomeUp ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'} w-fit px-2 py-1.5 rounded-lg`}>
+              {trends.incomeUp ? <FiTrendingUp size={14} /> : <FiTrendingDown size={14} />}
               <span>{trends.income} {t('reports.vs_last_month')}</span>
             </div>
           </div>
-          <div className="absolute right-[-20px] bottom-[-20px] text-emerald-50 opacity-50 pointer-events-none">
-            <FiArrowUpRight size={120} strokeWidth={3} />
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shrink-0">
+            <FiArrowUpRight size={24} />
           </div>
         </div>
 
         {/* Expense */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-          <div className="relative z-10">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex items-center justify-between">
+          <div>
             <p className="text-sm font-bold text-slate-500 mb-1">{t('reports.total_expense')}</p>
             <h3 className="text-3xl font-black text-rose-600 mb-2">{formatRupiah(metrics.expense)}</h3>
-            <div className={`flex items-center gap-1.5 text-xs font-bold ${trends.expenseUp ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50'} w-fit px-2 py-1 rounded-md`}>
-              {trends.expenseUp ? <FiTrendingUp /> : <FiTrendingDown />}
+            <div className={`flex items-center gap-1.5 text-xs font-bold ${trends.expenseUp ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50'} w-fit px-2 py-1.5 rounded-lg`}>
+              {trends.expenseUp ? <FiTrendingUp size={14} /> : <FiTrendingDown size={14} />}
               <span>{trends.expense} {t('reports.vs_last_month')}</span>
             </div>
           </div>
-          <div className="absolute right-[-20px] bottom-[-20px] text-rose-50 opacity-50 pointer-events-none">
-            <FiArrowDownRight size={120} strokeWidth={3} />
+          <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-rose-600 shrink-0">
+            <FiArrowDownRight size={24} />
           </div>
         </div>
 
         {/* Net Profit */}
-        <div className="bg-indigo-600 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden text-white border border-indigo-500">
-          <div className="absolute top-0 right-0 w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,#fff,transparent_60%)] pointer-events-none"></div>
+        <div className="bg-indigo-600 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden text-white border border-indigo-500 flex items-center justify-between">
           <div className="relative z-10">
             <p className="text-sm font-semibold text-indigo-100 mb-1">{t('reports.net_profit')}</p>
             <h3 className="text-3xl font-black mb-2">{formatRupiah(metrics.balance)}</h3>
@@ -360,6 +359,9 @@ export default function Reports() {
                 {healthStatus}
               </span>
             </div>
+          </div>
+          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-indigo-200 shrink-0 relative z-10 border border-white/20">
+            <FiTrendingUp size={24} />
           </div>
         </div>
       </div>

@@ -393,35 +393,37 @@ export default function Transactions() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Card: Pemasukan */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow flex items-center justify-between">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-500 mb-1">{t('transactions.income_this_month')}</p>
+                <p className="text-sm font-bold text-slate-500 mb-1">{t('transactions.income_this_month')}</p>
                 <h3 className="text-2xl font-black text-emerald-600">{formatRupiah(metrics.income)}</h3>
               </div>
-              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shrink-0">
                 <FiArrowUpRight size={24} />
               </div>
             </div>
 
             {/* Card: Pengeluaran */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow flex items-center justify-between">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-500 mb-1">{t('transactions.expense_this_month')}</p>
+                <p className="text-sm font-bold text-slate-500 mb-1">{t('transactions.expense_this_month')}</p>
                 <h3 className="text-2xl font-black text-rose-600">{formatRupiah(metrics.expense)}</h3>
               </div>
-              <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-rose-600">
+              <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-rose-600 shrink-0">
                 <FiArrowDownRight size={24} />
               </div>
             </div>
 
             {/* Card: Arus Kas Bersih */}
-            <div className="bg-white p-5 rounded-2xl border-2 border-blue-50 shadow-md hover:shadow-lg transition-shadow flex items-center justify-between relative overflow-hidden">
-              <div className="absolute right-0 top-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="relative z-10">
-                <p className="text-sm font-semibold text-slate-500 mb-1">{t('transactions.net_cash_flow')}</p>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-slate-500 mb-1">{t('transactions.net_cash_flow')}</p>
                 <h3 className={`text-2xl font-black ${metrics.balance >= 0 ? 'text-blue-600' : 'text-rose-600'}`}>
                   {metrics.balance >= 0 ? '+' : ''}{formatRupiah(metrics.balance)}
                 </h3>
+              </div>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${metrics.balance >= 0 ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'}`}>
+                {metrics.balance >= 0 ? <FiArrowUpRight size={24} /> : <FiArrowDownRight size={24} />}
               </div>
             </div>
           </div>
@@ -588,7 +590,7 @@ export default function Transactions() {
                           ) : (
                             <FiArrowDownRight size={18} strokeWidth={3} className="text-rose-500 shrink-0" />
                           )}
-                          <span className={`text-[15px] font-black tabular-nums tracking-tight ${trx.type === "Pemasukan" ? "text-emerald-600" : "text-slate-800"}`}>
+                          <span className={`text-[15px] font-black tabular-nums tracking-tight ${trx.type === "Pemasukan" ? "text-emerald-600" : "text-rose-600"}`}>
                             {trx.type === "Pemasukan" ? "+" : "-"}{formatRupiah(trx.amount)}
                           </span>
                         </div>
