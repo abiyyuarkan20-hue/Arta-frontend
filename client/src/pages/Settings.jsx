@@ -7,13 +7,7 @@ import {
   FiPhone, FiMail, FiGlobe, FiUsers, FiCalendar, FiFileText,
   FiInstagram, FiCreditCard, FiHash
 } from "react-icons/fi";
-
-// Data dummy untuk UI sementara
-const DUMMY_USERS = [
-  { id: 1, name: "Juanda (Anda)", email: "owner@artha.id", role: "Owner", status: "Active" },
-  { id: 2, name: "Budi Santoso", email: "budi@artha.id", role: "Admin", status: "Active" },
-  { id: 3, name: "Siti Aminah", email: "siti@artha.id", role: "User", status: "Active" },
-];
+import api from "../services/api";
 
 const ROLE_PERMISSIONS = {
   Owner: {
@@ -50,7 +44,50 @@ const Settings = () => {
   const activeTab = searchParams.get("tab") || "roles";
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newUserData, setNewUserData] = useState({ name: "", email: "", role: "User" });
+  const [addLoading, setAddLoading] = useState(false);
+  const [newUserData, setNewUserData] = useState({ name: "", email: "", role: "User", password: "" });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editUserData, setEditUserData] = useState({ id: "", name: "", role: "User", isOwner: false });
+  const [usersList, setUsersList] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const res = await api.get('/api/users');
+      const users = res.data?.data || res.data || [];
+      
+      // Cek apakah sudah ada user dengan role OWNER
+      const hasOwner = users.some(u => (u.role || '').toUpperCase() === 'OWNER');
+      
+      // Jika belum ada OWNER, set user yang sedang login sebagai OWNER
+      if (!hasOwner) {
+        try {
+          await api.post('/api/users/set-owner');
+          // Refresh data setelah set owner
+          const refreshRes = await api.get('/api/users');
+          setUsersList(refreshRes.data?.data || refreshRes.data || []);
+          setIsLoadingUsers(false);
+          return;
+        } catch (ownerErr) {
+          console.error("Gagal set owner:", ownerErr);
+        }
+      }
+      
+      setUsersList(users);
+    } catch (err) {
+      console.error("Gagal mengambil data user:", err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "roles") {
+      fetchUsers();
+    }
+  }, [activeTab]);
 
   // State for Profil Usaha
   const [saveStatus, setSaveStatus] = useState("idle");
@@ -149,11 +186,57 @@ const Settings = () => {
     }
   };
 
-  const handleAddSubmit = (e) => {
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
-    alert("Ini hanyalah prototipe UI. Fitur pembuatan akun belum terhubung ke backend.");
-    setIsAddModalOpen(false);
-    setNewUserData({ name: "", email: "", role: "User" });
+    setAddLoading(true);
+    try {
+      const payload = {
+        name: newUserData.name,
+        email: newUserData.email,
+        role: newUserData.role.toUpperCase(),
+        password: newUserData.password
+      };
+      await api.post('/api/users', payload);
+      alert("Akun berhasil dibuat! Karyawan dapat langsung login.");
+      setIsAddModalOpen(false);
+      setNewUserData({ name: "", email: "", role: "User", password: "" });
+      fetchUsers();
+    } catch (err) {
+      alert("Gagal membuat akun: " + (err.response?.data?.message || err.message));
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      const payload = { name: editUserData.name };
+      // Hanya kirim role jika bukan OWNER
+      if (!editUserData.isOwner) {
+        payload.role = editUserData.role.toUpperCase();
+      }
+      await api.put(`/api/users/${editUserData.id}`, payload);
+      alert("Akun berhasil diperbarui!");
+      setIsEditModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      alert("Gagal update akun: " + (err.response?.data?.message || err.message));
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus akun ini?")) {
+      try {
+        await api.delete(`/api/users/${id}`);
+        fetchUsers();
+      } catch (err) {
+        alert("Gagal menghapus akun: " + (err.response?.data?.message || err.message));
+      }
+    }
   };
 
   return (
@@ -195,47 +278,84 @@ const Settings = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {DUMMY_USERS.map(user => (
-                        <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-black text-slate-500">
-                                {user.name.charAt(0)}
-                              </div>
-                              <div>
-                                <p className="font-bold text-slate-800 text-sm">{user.name}</p>
-                                <p className="text-xs text-slate-500">{user.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-3 py-1 text-xs font-black rounded-lg uppercase tracking-wider inline-flex items-center justify-center ${
-                                user.role === 'Owner' ? 'bg-indigo-100 text-indigo-700' :
-                                user.role === 'Admin' ? 'bg-amber-100 text-amber-700' :
-                                'bg-emerald-100 text-emerald-700'
-                              }`}>
-                                {user.role}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                              <div className="w-2 h-2 rounded-full bg-emerald-500"></div> {t('settings.status_active')}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            {user.role !== "Owner" && (
-                              <div className="flex items-center justify-end gap-2">
-                                <button className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-lg hover:bg-indigo-50" title={t('settings.edit_access')}>
-                                  <FiEdit2 size={16} />
-                                </button>
-                                <button className="text-slate-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50" title={t('settings.delete_access')}>
-                                  <FiTrash2 size={16} />
-                                </button>
-                              </div>
-                            )}
+                      {isLoadingUsers ? (
+                        <tr>
+                          <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
+                            <FiLoader className="animate-spin inline-block mr-2" /> Memuat data...
                           </td>
                         </tr>
-                      ))}
+                      ) : usersList.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
+                            Belum ada akun terdaftar.
+                          </td>
+                        </tr>
+                      ) : usersList.map(user => {
+                        const userName = user.name || "Unknown";
+                        const userRole = (user.role || "USER").toUpperCase();
+                        const isOwner = userRole === "OWNER";
+                        
+                        return (
+                          <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${isOwner ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                  {userName.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-slate-800 text-sm">
+                                    {userName}
+                                    {user.is_current_user && <span className="ml-2 text-xs text-indigo-500 font-medium">(Anda)</span>}
+                                  </p>
+                                  <p className="text-xs text-slate-500">{user.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 text-xs font-black rounded-lg uppercase tracking-wider inline-flex items-center justify-center ${
+                                  isOwner ? 'bg-indigo-100 text-indigo-700' :
+                                  userRole === 'ADMIN' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {userRole}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div> {t('settings.status_active')}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button 
+                                  onClick={() => {
+                                    setEditUserData({ 
+                                      id: user.id, 
+                                      name: userName, 
+                                      role: userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase(),
+                                      isOwner: isOwner
+                                    });
+                                    setIsEditModalOpen(true);
+                                  }}
+                                  className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-lg hover:bg-indigo-50" 
+                                  title={isOwner ? 'Edit Nama' : t('settings.edit_access')}
+                                >
+                                  <FiEdit2 size={16} />
+                                </button>
+                                {!isOwner && !user.is_current_user && (
+                                  <button 
+                                    onClick={() => handleDeleteUser(user.id)}
+                                    className="text-slate-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50" 
+                                    title={t('settings.delete_access')}
+                                  >
+                                    <FiTrash2 size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -513,6 +633,20 @@ const Settings = () => {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <FiKey size={11} /> Password untuk Login
+                </label>
+                <input 
+                  type="password" 
+                  required
+                  value={newUserData.password}
+                  onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                  placeholder="Set password untuk akun ini"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                   <FiShield size={11} /> {t('settings.choose_role_label')}
                 </label>
                 <select 
@@ -536,14 +670,97 @@ const Settings = () => {
                   type="button" 
                   onClick={() => setIsAddModalOpen(false)}
                   className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  disabled={addLoading}
                 >
                   {t('settings.cancel')}
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95"
+                  disabled={addLoading}
+                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {t('settings.save_account')}
+                  {addLoading && <FiLoader size={14} className="animate-spin" />}
+                  {addLoading ? 'Membuat...' : t('settings.save_account')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Akses */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsEditModalOpen(false)}></div>
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-fade-in-up">
+            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                  <FiEdit2 className="text-white" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-lg">{editUserData.isOwner ? 'Edit Nama Owner' : 'Edit Akses'}</h3>
+                  <p className="text-indigo-100 text-xs font-medium mt-0.5">{editUserData.isOwner ? 'Ubah nama tampilan akun Owner' : 'Ubah detail dan hak akses tim'}</p>
+                </div>
+              </div>
+              <button onClick={() => setIsEditModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+                <FiX size={16} strokeWidth={3} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="p-7 space-y-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <FiUser size={11} /> {t('settings.full_name_label')}
+                </label>
+                <input 
+                  type="text" 
+                  required
+                  value={editUserData.name}
+                  onChange={(e) => setEditUserData({...editUserData, name: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
+                />
+              </div>
+
+              {editUserData.isOwner ? (
+                <div className="flex items-start gap-1.5 p-3 bg-indigo-50 rounded-xl">
+                  <FiShield className="text-indigo-500 mt-0.5 shrink-0" size={14} />
+                  <p className="text-[11px] text-indigo-700 font-medium leading-relaxed">
+                    Role <strong>OWNER</strong> tidak dapat diubah. Anda hanya bisa mengedit nama tampilan.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <FiShield size={11} /> {t('settings.choose_role_label')}
+                  </label>
+                  <select 
+                    value={editUserData.role}
+                    onChange={(e) => setEditUserData({...editUserData, role: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm appearance-none cursor-pointer"
+                  >
+                    <option value="Admin">{t('settings.role_admin_option')}</option>
+                    <option value="User">{t('settings.role_user_option')}</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="pt-2 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  disabled={editLoading}
+                >
+                  {t('settings.cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={editLoading}
+                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {editLoading && <FiLoader size={14} className="animate-spin" />}
+                  {editLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>
               </div>
             </form>

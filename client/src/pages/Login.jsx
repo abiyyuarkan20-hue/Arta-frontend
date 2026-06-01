@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { FiEye, FiEyeOff } from "react-icons/fi"; // Import ikon mata
 import api from "../services/api";
 import { supabase } from "../services/supabaseClient";
 import AuthLayout from "../components/AuthLayout";
-import { useAuth } from "../context/AuthProvider"; // Import Auth Context
+import { useAuth } from "../context/AuthProvider";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false); // State untuk show/hide password
   const [error, setError] = useState("");
   const [isEmailNotConfirmed, setIsEmailNotConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
-  const { setProfile } = useAuth(); // Ambil setProfile dari context
+  const { setProfile } = useAuth();
   const successMessage = location.state?.message || "";
 
   const handleChange = (e) => {
@@ -38,31 +41,26 @@ const Login = () => {
 
       if (authError) throw authError;
 
-      // 2. Fetch Profile untuk menentukan redirect (Dashboard vs Onboarding)
-      // AuthProvider onAuthStateChange juga akan fetch, tapi kita perlu hasilnya
-      // di sini untuk navigasi yang tepat
+      // 2. Fetch Profile
       try {
         const profileResponse = await api.get("/api/profile");
         const profile = profileResponse?.data?.data?.profile;
 
         if (profile) {
           localStorage.setItem("profile", JSON.stringify(profile));
-          setProfile(profile); // Sinkronkan ke context
+          setProfile(profile);
 
-          // Redirect berdasarkan status onboarding
           if (profile.onboarding_completed) {
             navigate("/dashboard", { replace: true });
           } else {
             navigate("/onboarding", { replace: true });
           }
         } else {
-          // Jika tidak ada profil, arahkan ke onboarding
           setProfile(null);
           navigate("/onboarding", { replace: true });
         }
       } catch (profileErr) {
         console.error("Gagal mengambil profil:", profileErr);
-        // Fallback: arahkan ke onboarding jika gagal ambil profil
         navigate("/onboarding", { replace: true });
       }
 
@@ -121,15 +119,24 @@ const Login = () => {
 
         <div className="space-y-1">
           <label className="block text-xs font-semibold text-slate-600 ml-1">Password</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-orange-400 focus:bg-white outline-none transition-all text-sm"
-            placeholder="Input your password"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-orange-400 focus:bg-white outline-none transition-all text-sm"
+              placeholder="Input your password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+            >
+              {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+            </button>
+          </div>
         </div>
 
         <div className="pt-2">

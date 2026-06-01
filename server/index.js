@@ -4,6 +4,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/authRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const userRoutes = require("./routes/userRoutes");
 const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
@@ -33,6 +34,9 @@ app.use("/api/auth", authRoutes);
 
 // Profile routes (Dilindungi)
 app.use("/api/profile", authMiddleware, profileRoutes);
+
+// User management routes (Dilindungi — hanya Owner/Admin)
+app.use("/api/users", authMiddleware, userRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
