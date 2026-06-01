@@ -6,7 +6,7 @@ import {
 } from "react-icons/fi";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, BarChart, Bar
+  PieChart, Pie, Cell
 } from 'recharts';
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -394,32 +394,80 @@ export default function Reports() {
         {/* Cash Flow Area Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-black text-slate-800">{chartTitle}</h3>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{rangeLabels[dateRange]}</span>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-black text-slate-800">{chartTitle}</h3>
+            </div>
+            <div className="flex items-center gap-4">
+              {/* Inline legend */}
+              <div className="hidden sm:flex items-center gap-4 text-xs font-semibold text-slate-500">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Pemasukan</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Pengeluaran</span>
+              </div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider border border-slate-200 rounded-lg px-2.5 py-1.5">{rangeLabels[dateRange]}</span>
+            </div>
           </div>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height={288}>
-              <AreaChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart data={cashFlowData} margin={{ top: 10, right: 10, left: -5, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorPemasukan" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorPengeluaran" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
                     <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} dy={10} interval={dateRange === "this_month" || dateRange === "last_month" ? 4 : 0} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => dateRange === "this_year" ? `${(v / 1000000).toFixed(0)}jt` : `${(v / 1000).toFixed(0)}k`} />
-                <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
-                <RechartsTooltip
-                  formatter={(value) => formatRupiah(value)}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }}
+                  dy={10}
+                  interval={dateRange === "this_month" || dateRange === "last_month" ? 4 : 0}
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
-                <Area type="monotone" dataKey="Pemasukan" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorPemasukan)" />
-                <Area type="monotone" dataKey="Pengeluaran" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorPengeluaran)" />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 500 }}
+                  tickFormatter={(v) => {
+                    if (v >= 1000000) return `${(v / 1000000).toFixed(1)}jt`;
+                    if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
+                    return v;
+                  }}
+                  width={50}
+                />
+                <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="4 4" />
+                <RechartsTooltip
+                  formatter={(value, name) => [formatRupiah(value), name]}
+                  contentStyle={{
+                    borderRadius: '16px',
+                    border: 'none',
+                    boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.06)',
+                    padding: '12px 16px',
+                  }}
+                  itemStyle={{ fontWeight: '600', fontSize: '13px' }}
+                  labelStyle={{ color: '#1e293b', fontWeight: '700', marginBottom: '6px', fontSize: '13px' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pemasukan"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorPemasukan)"
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff', fill: '#10b981' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pengeluaran"
+                  stroke="#f43f5e"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorPengeluaran)"
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff', fill: '#f43f5e' }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>

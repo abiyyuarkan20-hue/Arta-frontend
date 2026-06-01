@@ -61,6 +61,10 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [apiError, setApiError] = useState(null);
 
+  // Fitur Tabel Data Transaksi Dashboard
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("Semua");
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
@@ -107,6 +111,40 @@ const Dashboard = () => {
   const handleGoToProfile = () => {
     setShowProfilePrompt(false);
     navigate("/dashboard/settings?tab=profile");
+  };
+
+  const filteredTransactions = (dashboardData?.recent_transactions || []).filter(tx => {
+    const matchSearch = (tx.description || tx.desc || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchType = filterType === "Semua" || (tx.type || "").toLowerCase() === filterType.toLowerCase();
+    return matchSearch && matchType;
+  });
+
+  const handleExportCSV = () => {
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+      alert("Tidak ada data untuk diexport");
+      return;
+    }
+    const headers = ["Tanggal", "Deskripsi", "Kategori", "Tipe", "Nominal"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredTransactions.map(trx => [
+        trx.date,
+        `"${trx.description || trx.desc}"`,
+        trx.category,
+        trx.type,
+        trx.amount
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Data_Transaksi_Dashboard_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) {
@@ -593,19 +631,38 @@ const Dashboard = () => {
                 <input
                   type="text"
                   placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-full sm:w-64 focus:outline-none focus:border-purple-500"
-                  readOnly
                 />
               </div>
-              <button className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
-                <FiFilter size={14} />{" "}
-                <span className="hidden sm:inline">Filter</span>
-              </button>
-              <button className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
+              <div className="relative hidden sm:block">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="appearance-none flex items-center gap-2 pl-8 pr-8 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 focus:outline-none cursor-pointer"
+                >
+                  <option value="Semua">Tipe</option>
+                  <option value="Pemasukan">Pemasukan</option>
+                  <option value="Pengeluaran">Pengeluaran</option>
+                </select>
+                <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+              </div>
+              <button 
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
                 <FiDownload size={14} />{" "}
-                <span className="hidden sm:inline">Export</span>{" "}
-                <FiChevronDown size={14} />
+                <span className="hidden sm:inline">Export</span>
               </button>
+              <Link 
+                to="/dashboard/transactions"
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm"
+              >
+                <FiPlus size={14} />{" "}
+                <span className="hidden sm:inline">Tambah</span>
+              </Link>
             </div>
           </div>
 
@@ -635,18 +692,18 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {!dashboardData?.recent_transactions ||
-                dashboardData.recent_transactions.length === 0 ? (
+                {!filteredTransactions ||
+                filteredTransactions.length === 0 ? (
                   <tr>
                     <td
                       colSpan="5"
                       className="py-12 text-center text-slate-500 text-sm"
                     >
-                      Belum ada transaksi. Mulai catat transaksi pertama Anda!
+                      Belum ada transaksi sesuai filter. Mulai catat transaksi pertama Anda!
                     </td>
                   </tr>
                 ) : (
-                  dashboardData.recent_transactions.map((tx, idx) => (
+                  filteredTransactions.map((tx, idx) => (
                     <tr
                       key={tx.id || idx}
                       className="hover:bg-slate-50/50 transition-colors"

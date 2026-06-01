@@ -7,7 +7,7 @@ import {
   FiPlus, FiSearch, FiFilter, FiDownload, FiMoreVertical,
   FiArrowUpRight, FiArrowDownRight, FiX, FiZap, FiLoader,
   FiUploadCloud, FiPaperclip, FiEdit2, FiTrash2, FiChevronDown,
-  FiAlertCircle, FiRefreshCw, FiCalendar // Ditambahkan FiCalendar
+  FiAlertCircle, FiRefreshCw, FiCalendar, FiCheckCircle, FiCircle
 } from "react-icons/fi";
 
 const categories = [
@@ -37,7 +37,7 @@ const categoryColors = {
   "Lainnya": "bg-gray-100 text-gray-700 border-gray-200",
 };
 
-export default function Transactions() {
+export default function Transactions({ isDashboard = false }) {
   const { t } = useTranslation();
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +87,7 @@ export default function Transactions() {
         amount: Math.abs(Number(trx.amount || trx.nominal || 0)),
         invoice: trx.invoice || trx.bukti || null,
         invoiceUrl: trx.invoice_url || trx.bukti_url || null,
+        is_checked: trx.is_checked || JSON.parse(localStorage.getItem(`checked_trx_${trx.id || trx._id}`)) || false,
       }));
       setTransactions(normalized);
     } catch (err) {
@@ -219,6 +220,46 @@ export default function Transactions() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (filteredTransactions.length === 0) {
+      alert("Tidak ada data untuk diexport");
+      return;
+    }
+    const headers = ["Tanggal", "Deskripsi", "Kategori", "Tipe", "Nominal", "Status Cek"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredTransactions.map(trx => [
+        trx.date,
+        `"${trx.description}"`,
+        trx.category,
+        trx.type,
+        trx.amount,
+        trx.is_checked ? "Sudah Dicek" : "Belum Dicek"
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Data_Transaksi_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleToggleCheck = (id) => {
+    setTransactions(prev => prev.map(trx => {
+      if (trx.id === id) {
+        const newStatus = !trx.is_checked;
+        localStorage.setItem(`checked_trx_${id}`, JSON.stringify(newStatus));
+        return { ...trx, is_checked: newStatus };
+      }
+      return trx;
+    }));
+  };
+
   const handleEditClick = (trx) => {
     setEditingId(trx.id);
     const rawAmount = trx.amount.toString();
@@ -265,12 +306,13 @@ export default function Transactions() {
     try {
       // Sesuai dokumentasi API Arta:
       // POST /transactions → Multipart/Form-Data
-      // Fields: type, amount, date, description, invoiceFile (opsional)
+      // Fields: type, amount, date, description, category, invoiceFile (opsional)
       const submitData = new FormData();
       submitData.append('type', formData.type);                          // "Pemasukan" atau "Pengeluaran"
       submitData.append('amount', Math.abs(Number(formData.amount)));    // Angka positif (contoh: 150000)
       submitData.append('date', formData.date);                          // Format YYYY-MM-DD
       submitData.append('description', formData.description || '-');     // Keterangan detail
+      submitData.append('category', formData.category);                  // Kategori transaksi (sinkron dengan input user)
 
       // File invoice opsional (key harus 'invoiceFile' sesuai docs)
       if (formData.invoiceFile) {
@@ -389,7 +431,7 @@ export default function Transactions() {
       )}
 
       {/* 1. Header & Panel Metrik Ringkas */}
-      {!isLoading && (
+      {!isLoading && !isDashboard && (
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-slate-800 mb-6">{t('transactions.title')}</h1>
 
@@ -510,7 +552,10 @@ export default function Transactions() {
               </button>
             )}
 
-            <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm">
+            <button 
+              onClick={handleExportCSV}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm"
+            >
               <FiDownload />
               <span className="hidden sm:inline">{t('transactions.export_csv')}</span>
             </button>
@@ -559,6 +604,7 @@ export default function Transactions() {
                     <div className="flex items-center justify-end gap-1.5">{t('transactions.table_amount')} <span className="text-[10px] text-slate-400">▼</span></div>
                   </th>
                   <th className="px-6 py-4 text-center">{t('transactions.table_proof')}</th>
+                  <th className="px-6 py-4 text-center">Status Cek</th>
                   <th className="px-6 py-4 text-center">{t('transactions.table_action')}</th>
                 </tr>
               </thead>
@@ -611,6 +657,20 @@ export default function Transactions() {
                           <span className="text-slate-300">-</span>
                         )}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => handleToggleCheck(trx.id)}
+                          className={`flex items-center justify-center gap-1.5 mx-auto px-3 py-1.5 rounded-lg transition-all shadow-sm border ${
+                            trx.is_checked 
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100" 
+                              : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          }`}
+                          title={trx.is_checked ? "Sudah dicek" : "Tandai sudah dicek"}
+                        >
+                          {trx.is_checked ? <FiCheckCircle size={15} /> : <FiCircle size={15} />}
+                          <span className="text-xs font-bold">{trx.is_checked ? "Dicek" : "Belum"}</span>
+                        </button>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -633,7 +693,7 @@ export default function Transactions() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-slate-500 font-medium">
+                    <td colSpan="8" className="px-6 py-12 text-center text-slate-500 font-medium">
                       {t('transactions.no_transactions')}
                     </td>
                   </tr>
