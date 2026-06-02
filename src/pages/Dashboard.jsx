@@ -84,7 +84,8 @@ const Dashboard = () => {
       localStorage.removeItem("new_business_name");
     }
 
-    if (prof?.user_type === "umkm_aktif") {
+    const isEmp = ["ADMIN", "STAFF", "USER"].includes(String(prof?.role || "").toUpperCase());
+    if (prof?.user_type === "umkm_aktif" || isEmp) {
       setLoading(true);
       api
         .get(`/api/dashboard/overview?range=${filterWaktu}`)
@@ -155,7 +156,10 @@ const Dashboard = () => {
     );
   }
 
-  const userType = profile?.user_type;
+  const currentUserRole = profile?.role || user?.user_metadata?.role || "USER";
+  const isEmployee = ["ADMIN", "STAFF", "USER"].includes(String(currentUserRole).toUpperCase());
+  const userType = isEmployee ? "umkm_aktif" : profile?.user_type;
+
   const firstName = (
     profile?.nama_lengkap ||
     user?.user_metadata?.nama_lengkap ||
@@ -317,7 +321,7 @@ const Dashboard = () => {
     <>
       {showProfilePrompt && <ProfilePromptModal />}
 
-      <div className="max-w-[1400px] mx-auto space-y-6 pb-12 px-2 sm:px-6 animate-fade-in font-sans">
+      <div className="max-w-[1400px] mx-auto space-y-4 sm:space-y-6 pb-8 sm:pb-12 animate-fade-in font-sans">
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8 z-20 relative">
           <div className="flex flex-wrap items-center gap-3">
@@ -403,82 +407,82 @@ const Dashboard = () => {
         )}
 
         {/* METRICS CARDS (4 Kolom Layout seperti gambar) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 relative z-10">
           {/* Card 1: Pemasukan */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-slate-500 mb-4">
-              <FiArrowUpRight size={14} />
-              <span className="text-sm font-medium">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
+              <FiArrowUpRight size={14} className="shrink-0" />
+              <span className="text-xs sm:text-sm font-medium truncate">
                 {t("dashboard.income")}
               </span>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-slate-900">
+              <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
                 {formatRupiah(dashboardData?.summary?.income || 0)}
               </h3>
-              <div className="flex items-center gap-1 mt-2">
-                <span className="text-xs font-medium text-emerald-500">
+              <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                <span className="text-[10px] sm:text-xs font-medium text-emerald-500">
                   +{dashboardData?.summary?.income_change || 0}%
                 </span>
-                <span className="text-xs text-slate-400">vs periode lalu</span>
+                <span className="text-[10px] sm:text-xs text-slate-400 truncate">vs lalu</span>
               </div>
             </div>
           </div>
 
           {/* Card 2: Pengeluaran */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-slate-500 mb-4">
-              <FiArrowDownRight size={14} />
-              <span className="text-sm font-medium">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
+              <FiArrowDownRight size={14} className="shrink-0" />
+              <span className="text-xs sm:text-sm font-medium truncate">
                 {t("dashboard.expense")}
               </span>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-slate-900">
+              <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
                 {formatRupiah(dashboardData?.summary?.expense || 0)}
               </h3>
-              <div className="flex items-center gap-1 mt-2">
-                <span className="text-xs font-medium text-rose-500">
+              <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                <span className="text-[10px] sm:text-xs font-medium text-rose-500">
                   +{dashboardData?.summary?.expense_change || 0}%
                 </span>
-                <span className="text-xs text-slate-400">vs periode lalu</span>
+                <span className="text-[10px] sm:text-xs text-slate-400 truncate">vs lalu</span>
               </div>
             </div>
           </div>
 
           {/* Card 3: Laba Bersih */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-slate-500 mb-4">
-              <FiTrendingUp size={14} />
-              <span className="text-sm font-medium">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
+              <FiTrendingUp size={14} className="shrink-0" />
+              <span className="text-xs sm:text-sm font-medium truncate">
                 {t("dashboard.net_profit")}
               </span>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-slate-900">
+              <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
                 {formatRupiah(dashboardData?.summary?.net_profit || 0)}
               </h3>
-              <div className="flex items-center gap-1 mt-2">
-                <span className="text-xs font-medium text-emerald-500">
+              <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                <span className="text-[10px] sm:text-xs font-medium text-emerald-500">
                   +Aktif
                 </span>
-                <span className="text-xs text-slate-400">profit margin</span>
+                <span className="text-[10px] sm:text-xs text-slate-400 truncate">margin</span>
               </div>
             </div>
           </div>
 
           {/* Card 4: Status Kesehatan (Menyesuaikan grid 4 kolom) */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 text-slate-500 mb-4">
-              <FiActivity size={14} />
-              <span className="text-sm font-medium">Status Kesehatan</span>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
+              <FiActivity size={14} className="shrink-0" />
+              <span className="text-xs sm:text-sm font-medium truncate">Status Kesehatan</span>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1">
+              <h3 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight mb-1 truncate">
                 {dashboardData?.summary?.health_status || "Belum ada status"}
               </h3>
-              <div className="flex items-center gap-1 mt-2">
-                <span className="text-xs text-slate-400">
+              <div className="flex items-center gap-1 mt-1 sm:mt-2">
+                <span className="text-[10px] sm:text-xs text-slate-400 truncate">
                   Evaluasi sistem AI
                 </span>
               </div>
@@ -504,8 +508,14 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="h-[280px] w-full flex-1">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[200px] sm:h-[280px] w-full flex-1 relative min-h-[200px]">
+              {(!dashboardData?.chart_data || dashboardData.chart_data.length === 0) ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                  <FiActivity size={32} className="mb-2 text-slate-300" />
+                  <span className="text-sm font-medium">Belum ada data tren arus kas.</span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={dashboardData?.chart_data || []}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -560,6 +570,7 @@ const Dashboard = () => {
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorP)"
+                    dot={dashboardData?.chart_data?.length === 1 ? { r: 4, strokeWidth: 2 } : false}
                   />
                   <Area
                     type="monotone"
@@ -568,9 +579,11 @@ const Dashboard = () => {
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorE)"
+                    dot={dashboardData?.chart_data?.length === 1 ? { r: 4, strokeWidth: 2 } : false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -585,15 +598,15 @@ const Dashboard = () => {
 
             <div className="flex-1 flex flex-col justify-center items-center text-center">
               {/* Ornamen visual ala pie chart emails di gambar */}
-              <div className="relative w-48 h-48 mb-6">
-                <div className="absolute top-0 right-4 w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold opacity-80 mix-blend-multiply">
-                  <span className="text-sm">Prediksi</span>
+              <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-6 mx-auto scale-90 sm:scale-100 transform origin-center flex items-center justify-center">
+                <div className="absolute top-0 right-2 sm:right-4 w-20 h-20 sm:w-24 sm:h-24 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold opacity-80 mix-blend-multiply transition-all">
+                  <span className="text-xs sm:text-sm">Prediksi</span>
                 </div>
-                <div className="absolute bottom-4 left-4 w-28 h-28 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 font-bold opacity-80 mix-blend-multiply">
-                  <span className="text-sm">AI Arta</span>
+                <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 w-24 h-24 sm:w-28 sm:h-28 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 font-bold opacity-80 mix-blend-multiply transition-all">
+                  <span className="text-xs sm:text-sm">AI Arta</span>
                 </div>
-                <div className="absolute bottom-12 right-0 w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center text-orange-400 font-bold opacity-80 mix-blend-multiply">
-                  <FiTrendingUp size={20} />
+                <div className="absolute bottom-8 right-0 sm:bottom-12 sm:right-0 w-16 h-16 sm:w-20 sm:h-20 bg-orange-50 rounded-full flex items-center justify-center text-orange-400 font-bold opacity-80 mix-blend-multiply transition-all">
+                  <FiTrendingUp size={20} className="sm:w-6 sm:h-6" />
                 </div>
               </div>
 

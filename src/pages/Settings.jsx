@@ -1,80 +1,80 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { 
+import {
   FiShield, FiPlus, FiEdit2, FiKey, FiTrash2, FiUser, FiX,
   FiBriefcase, FiMapPin, FiTag, FiSave, FiCheck, FiLoader,
   FiPhone, FiMail, FiGlobe, FiUsers, FiCalendar, FiFileText,
   FiInstagram, FiCreditCard, FiHash
 } from "react-icons/fi";
 import api from "../services/api";
-
-const ROLE_PERMISSIONS = {
-  Owner: {
-    desc: "Memiliki akses penuh (Super Admin).",
-    permissions: ["Kelola Pengaturan & Role", "Lihat, Tambah, Tarik Laporan", "Akses Semua Fitur"]
-  },
-  Admin: {
-    desc: "Akses operasional menengah.",
-    permissions: ["Tambah Data Transaksi", "Tarik & Download Laporan", "Tidak bisa ubah Role"]
-  },
-  User: {
-    desc: "Akses operasional dasar.",
-    permissions: ["Hanya Lihat Data", "Tarik Penjualan Saja", "Tidak bisa ubah/hapus data"]
-  }
-};
+import { supabase } from "../services/supabaseClient";
 
 const businessCategories = [
-  "Kuliner & Makanan",
-  "Fashion & Pakaian",
-  "Perdagangan Umum",
-  "Jasa & Layanan",
-  "Teknologi & Digital",
-  "Pertanian & Perkebunan",
-  "Kesehatan & Kecantikan",
-  "Pendidikan",
-  "Otomotif",
-  "Lainnya",
+  "Kuliner & Makanan", "Fashion & Pakaian", "Perdagangan Umum",
+  "Jasa & Layanan", "Teknologi & Digital", "Pertanian & Perkebunan",
+  "Kesehatan & Kecantikan", "Pendidikan", "Otomotif", "Lainnya",
 ];
+
+// Fungsi Helper untuk membaca Role dari LocalStorage
+const getCurrentUserRole = () => {
+  try {
+    const profile = JSON.parse(localStorage.getItem("profile") || "{}");
+    if (profile.role) return profile.role.toUpperCase();
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return (user.user_metadata?.role || "USER").toUpperCase();
+  } catch (e) {
+    return "USER";
+  }
+};
 
 const Settings = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const activeTab = searchParams.get("tab") || "roles";
-  
+
+  // Deteksi Role
+  const currentUserRole = getCurrentUserRole();
+  const isOwner = currentUserRole === "OWNER";
+
+  // Proteksi Akses: Jika bukan OWNER, paksa ke tab 'profile'
+  let activeTab = searchParams.get("tab") || (isOwner ? "roles" : "profile");
+  if (!isOwner && activeTab === "roles") {
+    activeTab = "profile";
+  }
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [newUserData, setNewUserData] = useState({ name: "", email: "", role: "User", password: "" });
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [editUserData, setEditUserData] = useState({ id: "", name: "", role: "User", isOwner: false });
+
   const [usersList, setUsersList] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 
+  // === FUNGSI FETCH USER (Bersih, tanpa auto-set) ===
   const fetchUsers = async () => {
+    if (!isOwner) return; // Keamanan tambahan, cegah non-owner fetch data
+
     setIsLoadingUsers(true);
     try {
       const res = await api.get('/api/users');
-      const users = res.data?.data || res.data || [];
-      
-      // Cek apakah sudah ada user dengan role OWNER
-      const hasOwner = users.some(u => (u.role || '').toUpperCase() === 'OWNER');
-      
-      // Jika belum ada OWNER, set user yang sedang login sebagai OWNER
-      if (!hasOwner) {
-        try {
-          await api.post('/api/users/set-owner');
-          // Refresh data setelah set owner
-          const refreshRes = await api.get('/api/users');
-          setUsersList(refreshRes.data?.data || refreshRes.data || []);
-          setIsLoadingUsers(false);
-          return;
-        } catch (ownerErr) {
-          console.error("Gagal set owner:", ownerErr);
-        }
-      }
-      
+      let users = res.data?.data || res.data || [];
+
+      users = users.map(user => {
+        const metaName = user.user_metadata?.name || user.raw_user_meta_data?.name || user.user_metadata?.full_name || user.raw_user_meta_data?.full_name;
+        const metaRole = user.user_metadata?.role || user.raw_user_meta_data?.role;
+
+        return {
+          ...user,
+          display_name: user.name || metaName || "Unknown",
+          display_role: (user.role || metaRole || "USER").toUpperCase()
+        };
+      });
+
       setUsersList(users);
     } catch (err) {
       console.error("Gagal mengambil data user:", err);
@@ -84,27 +84,17 @@ const Settings = () => {
   };
 
   useEffect(() => {
-    if (activeTab === "roles") {
+    if (activeTab === "roles" && isOwner) {
       fetchUsers();
     }
-  }, [activeTab]);
+  }, [activeTab, isOwner]);
 
   // State for Profil Usaha
   const [saveStatus, setSaveStatus] = useState("idle");
   const [businessProfile, setBusinessProfile] = useState({
-    namaUsaha: "",
-    kategoriUsaha: "",
-    jenisUsaha: "",
-    tahunBerdiri: "",
-    jumlahKaryawan: "",
-    teleponUsaha: "",
-    emailUsaha: "",
-    website: "",
-    instagram: "",
-    alamatUsaha: "",
-    deskripsiUsaha: "",
-    nib: "",
-    npwp: "",
+    namaUsaha: "", kategoriUsaha: "", jenisUsaha: "", tahunBerdiri: "",
+    jumlahKaryawan: "", teleponUsaha: "", emailUsaha: "", website: "",
+    instagram: "", alamatUsaha: "", deskripsiUsaha: "", nib: "", npwp: "",
   });
 
   useEffect(() => {
@@ -129,7 +119,7 @@ const Settings = () => {
           nib: m.nib || "",
           npwp: m.npwp || "",
         }));
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -139,7 +129,7 @@ const Settings = () => {
   const handleBusinessSave = async () => {
     if (saveStatus === "saving") return;
     setSaveStatus("saving");
-    
+
     try {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
@@ -160,8 +150,7 @@ const Settings = () => {
           npwp: businessProfile.npwp,
         };
 
-        const { supabase } = await import("../services/supabaseClient");
-        const { data: updateData, error } = await supabase.auth.updateUser({
+        const { error } = await supabase.auth.updateUser({
           data: userMetadataUpdates
         });
 
@@ -176,7 +165,7 @@ const Settings = () => {
         };
         localStorage.setItem("user", JSON.stringify(updatedUser));
       }
-      
+
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2500);
     } catch (err) {
@@ -208,16 +197,26 @@ const Settings = () => {
     }
   };
 
+  // === FUNGSI EDIT ===
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setEditLoading(true);
     try {
       const payload = { name: editUserData.name };
-      // Hanya kirim role jika bukan OWNER
       if (!editUserData.isOwner) {
         payload.role = editUserData.role.toUpperCase();
       }
+
+      // Pastikan nama di session saat ini ter-update jika ngedit diri sendiri
+      const editingUser = usersList.find(u => u.id === editUserData.id);
+      if (editingUser?.is_current_user) {
+        await supabase.auth.updateUser({
+          data: { name: editUserData.name, full_name: editUserData.name }
+        });
+      }
+
       await api.put(`/api/users/${editUserData.id}`, payload);
+
       alert("Akun berhasil diperbarui!");
       setIsEditModalOpen(false);
       fetchUsers();
@@ -241,16 +240,14 @@ const Settings = () => {
 
   return (
     <div className="max-w-6xl mx-auto pb-12 animate-fade-in">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{t('settings.title')}</h1>
         <p className="text-slate-500 font-medium mt-1">{t('settings.subtitle')}</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Konten Utama */}
         <div className="flex-1">
-          {activeTab === "roles" && (
+          {activeTab === "roles" && isOwner && (
             <div className="space-y-6">
               {/* Tabel User */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -259,7 +256,7 @@ const Settings = () => {
                     <h3 className="font-bold text-slate-800">{t('settings.users_list')}</h3>
                     <p className="text-xs text-slate-500 mt-1">{t('settings.users_list_desc')}</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setIsAddModalOpen(true)}
                     className="bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md"
                   >
@@ -291,15 +288,15 @@ const Settings = () => {
                           </td>
                         </tr>
                       ) : usersList.map(user => {
-                        const userName = user.name || "Unknown";
-                        const userRole = (user.role || "USER").toUpperCase();
-                        const isOwner = userRole === "OWNER";
-                        
+                        const userName = user.display_name;
+                        const userRole = user.display_role;
+                        const isThisOwner = userRole === "OWNER";
+
                         return (
                           <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${isOwner ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${isThisOwner ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
                                   {userName.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
@@ -312,12 +309,11 @@ const Settings = () => {
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`px-3 py-1 text-xs font-black rounded-lg uppercase tracking-wider inline-flex items-center justify-center ${
-                                  isOwner ? 'bg-indigo-100 text-indigo-700' :
-                                  userRole === 'ADMIN' ? 'bg-amber-100 text-amber-700' :
+                              <span className={`px-3 py-1 text-xs font-black rounded-lg uppercase tracking-wider inline-flex items-center justify-center ${isThisOwner ? 'bg-indigo-100 text-indigo-700' :
+                                userRole === 'ADMIN' ? 'bg-amber-100 text-amber-700' :
                                   'bg-emerald-100 text-emerald-700'
                                 }`}>
-                                  {userRole}
+                                {userRole}
                               </span>
                             </td>
                             <td className="px-6 py-4">
@@ -327,25 +323,25 @@ const Settings = () => {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <button 
+                                <button
                                   onClick={() => {
-                                    setEditUserData({ 
-                                      id: user.id, 
-                                      name: userName, 
+                                    setEditUserData({
+                                      id: user.id,
+                                      name: userName,
                                       role: userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase(),
-                                      isOwner: isOwner
+                                      isOwner: isThisOwner
                                     });
                                     setIsEditModalOpen(true);
                                   }}
-                                  className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-lg hover:bg-indigo-50" 
-                                  title={isOwner ? 'Edit Nama' : t('settings.edit_access')}
+                                  className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-lg hover:bg-indigo-50"
+                                  title={isThisOwner ? 'Edit Nama' : t('settings.edit_access')}
                                 >
                                   <FiEdit2 size={16} />
                                 </button>
-                                {!isOwner && !user.is_current_user && (
-                                  <button 
+                                {!isThisOwner && !user.is_current_user && (
+                                  <button
                                     onClick={() => handleDeleteUser(user.id)}
-                                    className="text-slate-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50" 
+                                    className="text-slate-400 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
                                     title={t('settings.delete_access')}
                                   >
                                     <FiTrash2 size={16} />
@@ -360,13 +356,11 @@ const Settings = () => {
                   </table>
                 </div>
               </div>
-              
             </div>
           )}
 
           {activeTab === "profile" && (
             <div className="space-y-6">
-
               {/* === IDENTITAS USAHA === */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50/50">
@@ -582,7 +576,7 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Modal Tambah Akses (UI Prototype) */}
+      {/* Modal Tambah Akses */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsAddModalOpen(false)}></div>
@@ -601,59 +595,31 @@ const Settings = () => {
                 <FiX size={16} strokeWidth={3} />
               </button>
             </div>
-            
+
             <form onSubmit={handleAddSubmit} className="p-7 space-y-6">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                   <FiUser size={11} /> {t('settings.full_name_label')}
                 </label>
-                <input 
-                  type="text" 
-                  required
-                  value={newUserData.name}
-                  onChange={(e) => setNewUserData({...newUserData, name: e.target.value})}
-                  placeholder={t('settings.full_name_placeholder')}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
-                />
+                <input type="text" required value={newUserData.name} onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })} placeholder={t('settings.full_name_placeholder')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm" />
               </div>
-              
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                   <FiMail size={11} /> {t('settings.employee_email_label')}
                 </label>
-                <input 
-                  type="email" 
-                  required
-                  value={newUserData.email}
-                  onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
-                  placeholder={t('settings.employee_email_placeholder')}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
-                />
+                <input type="email" required value={newUserData.email} onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })} placeholder={t('settings.employee_email_placeholder')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm" />
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                   <FiKey size={11} /> Password untuk Login
                 </label>
-                <input 
-                  type="password" 
-                  required
-                  value={newUserData.password}
-                  onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
-                  placeholder="Set password untuk akun ini"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
-                />
+                <input type="password" required value={newUserData.password} onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })} placeholder="Set password untuk akun ini" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm" />
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                   <FiShield size={11} /> {t('settings.choose_role_label')}
                 </label>
-                <select 
-                  value={newUserData.role}
-                  onChange={(e) => setNewUserData({...newUserData, role: e.target.value})}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm appearance-none cursor-pointer"
-                >
+                <select value={newUserData.role} onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm appearance-none cursor-pointer">
                   <option value="Admin">{t('settings.role_admin_option')}</option>
                   <option value="User">{t('settings.role_user_option')}</option>
                 </select>
@@ -666,19 +632,10 @@ const Settings = () => {
               </div>
 
               <div className="pt-2 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                  disabled={addLoading}
-                >
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" disabled={addLoading}>
                   {t('settings.cancel')}
                 </button>
-                <button 
-                  type="submit" 
-                  disabled={addLoading}
-                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
+                <button type="submit" disabled={addLoading} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                   {addLoading && <FiLoader size={14} className="animate-spin" />}
                   {addLoading ? 'Membuat...' : t('settings.save_account')}
                 </button>
@@ -707,19 +664,13 @@ const Settings = () => {
                 <FiX size={16} strokeWidth={3} />
               </button>
             </div>
-            
+
             <form onSubmit={handleEditSubmit} className="p-7 space-y-6">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                   <FiUser size={11} /> {t('settings.full_name_label')}
                 </label>
-                <input 
-                  type="text" 
-                  required
-                  value={editUserData.name}
-                  onChange={(e) => setEditUserData({...editUserData, name: e.target.value})}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
-                />
+                <input type="text" required value={editUserData.name} onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm" />
               </div>
 
               {editUserData.isOwner ? (
@@ -734,11 +685,7 @@ const Settings = () => {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                     <FiShield size={11} /> {t('settings.choose_role_label')}
                   </label>
-                  <select 
-                    value={editUserData.role}
-                    onChange={(e) => setEditUserData({...editUserData, role: e.target.value})}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm appearance-none cursor-pointer"
-                  >
+                  <select value={editUserData.role} onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm appearance-none cursor-pointer">
                     <option value="Admin">{t('settings.role_admin_option')}</option>
                     <option value="User">{t('settings.role_user_option')}</option>
                   </select>
@@ -746,19 +693,10 @@ const Settings = () => {
               )}
 
               <div className="pt-2 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                  disabled={editLoading}
-                >
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" disabled={editLoading}>
                   {t('settings.cancel')}
                 </button>
-                <button 
-                  type="submit" 
-                  disabled={editLoading}
-                  className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
+                <button type="submit" disabled={editLoading} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                   {editLoading && <FiLoader size={14} className="animate-spin" />}
                   {editLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>
@@ -767,30 +705,8 @@ const Settings = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
-
-// FiCheckCircle component
-function FiCheckCircle(props) {
-  return (
-    <svg 
-      {...props} 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="16" 
-      height="16" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    >
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-    </svg>
-  );
-}
 
 export default Settings;

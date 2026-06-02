@@ -21,23 +21,25 @@ const ProtectedRoute = ({ children }) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
 
-  // Tunggu AuthProvider selesai memuat sesi + profil
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
 
-  // Jika tidak login, ke halaman login
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+  // --- TAMBAHKAN LOG INI ---
+  console.log("DEBUG AUTH:", {
+    user: user?.email,
+    role: profile?.role,
+    business_id: profile?.business_id,
+    onboarding_completed: profile?.onboarding_completed
+  });
+  // -------------------------
 
-  // Cek profil dari context (AuthProvider sudah sync dari server)
-  // Jika profil belum lengkap dan bukan di halaman onboarding, redirect
-  if (location.pathname !== "/onboarding" && (!profile || profile.onboarding_completed !== true)) {
+  const isPartofBusiness = profile && profile.business_id;
+  // Karyawan (ADMIN, USER, STAFF) tidak perlu melewati onboarding karena Owner yang mengatur bisnisnya
+  const isEmployee = profile && ['ADMIN', 'STAFF', 'USER'].includes(profile.role?.toUpperCase());
+  const shouldBypassOnboarding = isPartofBusiness || isEmployee;
+  const isProfileComplete = profile && profile.onboarding_completed === true;
+
+  if (location.pathname !== "/onboarding" && !shouldBypassOnboarding && !isProfileComplete) {
     return <Navigate to="/onboarding" replace />;
   }
 

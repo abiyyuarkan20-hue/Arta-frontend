@@ -7,6 +7,7 @@ import {
   FiShield, FiCalendar, FiTrendingUp, FiKey, FiEye, FiEyeOff, FiX
 } from "react-icons/fi";
 import api from "../services/api";
+import { supabase } from "../services/supabaseClient";
 
 
 
@@ -165,9 +166,6 @@ export default function Profile() {
     setSaveStatus("saving");
 
     try {
-      // Pastikan supabase client diimpor
-      const { supabase } = await import("../services/supabaseClient");
-
       // 1. Jika ganti password, verifikasi password lama via SERVER
       // PENTING: Jangan gunakan signInWithPassword di client karena akan
       // menghancurkan sesi aktif dan menyebabkan error "akses ditolak" saat login ulang
@@ -202,6 +200,15 @@ export default function Profile() {
       const { data: updateData, error: updateError } = await supabase.auth.updateUser(updatePayload);
 
       if (updateError) throw updateError;
+      
+      // Update juga ke backend database profiles agar tersinkron dan tidak balik ke awal saat refresh
+      // Hapus avatar dari payload backend untuk menghindari error 413 (Payload Too Large) di Vercel
+      const backendPayload = {
+        nama_lengkap: profile.namaLengkap,
+        telepon: profile.telepon,
+        bio: profile.bio,
+      };
+      await api.put("/api/profile", backendPayload);
 
       // --- Setelah ganti password: sign out bersih dan redirect ---
       if (isChangingPassword) {
@@ -449,9 +456,10 @@ export default function Profile() {
                   <input
                     type={showOldPassword ? "text" : "password"}
                     name="oldPassword"
+                    autoComplete="new-password"
                     value={passwordData.oldPassword}
                     onChange={handlePasswordChange}
-                    className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${passwordError === "Password yang Anda masukkan salah" ? 'border-red-400 focus:ring-red-400 focus:bg-red-50/50' : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}
+                    className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${passwordError ? 'border-red-400 focus:ring-red-400 focus:bg-red-50/50' : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}
                     placeholder="Masukkan kata sandi saat ini"
                   />
                   <button
@@ -462,7 +470,7 @@ export default function Profile() {
                     {showOldPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                   </button>
                 </div>
-                {passwordError === "Password yang Anda masukkan salah" && (
+                {passwordError && (
                   <p className="text-xs text-red-500 mt-1 font-medium">{passwordError}</p>
                 )}
 
@@ -477,6 +485,7 @@ export default function Profile() {
                   <input
                     type={showNewPassword ? "text" : "password"}
                     name="newPassword"
+                    autoComplete="new-password"
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
                     className="w-full px-4 py-3 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all duration-200 shadow-sm"
@@ -517,6 +526,7 @@ export default function Profile() {
                   <input
                     type={showConfirmNewPassword ? "text" : "password"}
                     name="confirmNewPassword"
+                    autoComplete="new-password"
                     value={passwordData.confirmNewPassword}
                     onChange={handlePasswordChange}
                     className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${isConfirmPasswordInvalid ? "border-red-400 focus:ring-red-400 focus:bg-red-50/50" : isPasswordMatch ? "border-emerald-400 focus:ring-emerald-400 focus:bg-emerald-50/50" : "border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500"} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}

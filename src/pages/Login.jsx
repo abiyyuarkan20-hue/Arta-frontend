@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { FiEye, FiEyeOff } from "react-icons/fi"; // Import ikon mata
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import api from "../services/api";
 import { supabase } from "../services/supabaseClient";
 import AuthLayout from "../components/AuthLayout";
@@ -8,7 +8,7 @@ import { useAuth } from "../context/AuthProvider";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false); // State untuk show/hide password
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isEmailNotConfirmed, setIsEmailNotConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,6 +41,9 @@ const Login = () => {
 
       if (authError) throw authError;
 
+      // Ambil role dari metadata user (jika ada)
+      const userRole = data.user?.user_metadata?.role?.toUpperCase();
+
       // 2. Fetch Profile
       try {
         const profileResponse = await api.get("/api/profile");
@@ -50,18 +53,41 @@ const Login = () => {
           localStorage.setItem("profile", JSON.stringify(profile));
           setProfile(profile);
 
-          if (profile.onboarding_completed) {
+          // === LOGIKA REDIRECT CERDAS ===
+          const role = userRole || profile.role?.toUpperCase() || "USER";
+          const isCompleted = profile.onboarding_completed;
+          const userType = data.user?.user_metadata?.user_type || profile.user_type;
+
+          if (role === "ADMIN" || role === "USER") {
+            // Karyawan (Admin/User) BYPASS langsung ke Dashboard
+            navigate("/dashboard", { replace: true });
+          } else if (role === "OWNER" && (isCompleted || userType)) {
+            // Owner yang sudah punya profil usaha / calon pengusaha
             navigate("/dashboard", { replace: true });
           } else {
+            // Pendaftar baru yang belum melakukan apa-apa
             navigate("/onboarding", { replace: true });
           }
+          // ===============================
+
         } else {
-          setProfile(null);
-          navigate("/onboarding", { replace: true });
+          // Fallback jika API Profile gagal, tapi auth berhasil
+          if (userRole === "ADMIN" || userRole === "USER") {
+            navigate("/dashboard", { replace: true });
+          } else {
+            setProfile(null);
+            navigate("/onboarding", { replace: true });
+          }
         }
       } catch (profileErr) {
         console.error("Gagal mengambil profil:", profileErr);
-        navigate("/onboarding", { replace: true });
+
+        // Proteksi ekstra: Kalau API error, tapi dia Admin/User, tetap izinkan masuk
+        if (userRole === "ADMIN" || userRole === "USER") {
+          navigate("/dashboard", { replace: true });
+        } else {
+          navigate("/onboarding", { replace: true });
+        }
       }
 
     } catch (err) {

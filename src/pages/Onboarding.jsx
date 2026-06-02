@@ -9,6 +9,7 @@ import {
   FiSearch,
   FiChevronDown
 } from "react-icons/fi";
+import { supabase } from "../services/supabaseClient"; // 👈 Import Supabase ditambahkan di sini
 
 import onboarding1 from "../assets/onboarding-1.png";
 import onboarding2 from "../assets/onboarding-2.png";
@@ -69,10 +70,10 @@ const Onboarding = () => {
   const [slideIndex, setSlideIndex] = useState(0);
 
   const [selectedType, setSelectedType] = useState("");
-  const [formData, setFormData] = useState({ 
-    nama_usaha: "", 
+  const [formData, setFormData] = useState({
+    nama_usaha: "",
     tipe_usaha: "",
-    lama_usaha: "" 
+    lama_usaha: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -92,7 +93,7 @@ const Onboarding = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredCategories = BUSINESS_CATEGORIES.filter(cat => 
+  const filteredCategories = BUSINESS_CATEGORIES.filter(cat =>
     cat.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -158,15 +159,49 @@ const Onboarding = () => {
     submitOnboarding("umkm_aktif", formData);
   };
 
+  // 👈 FUNGSI INI DIMODIFIKASI UNTUK AUTO-SET ROLE OWNER
   const submitOnboarding = async (user_type, extra) => {
     setLoading(true);
     setError("");
     try {
+      // 1. Simpan data onboarding ke database backend
       const res = await api.post("/api/profile/onboarding", { user_type, ...extra });
       const profileData = res.data.data.profile;
+
+      // 2. Set Auth Metadata Supabase secara diam-diam (Silent Auth Update)
+      const { error: supabaseError } = await supabase.auth.updateUser({
+        data: {
+          role: 'OWNER',
+          user_type: user_type
+        }
+      });
+
+      if (supabaseError) {
+        console.error("Peringatan: Gagal set role Supabase:", supabaseError.message);
+      }
+
+      // 3. Update localStorage 'user' secara sinkron agar Layout.jsx langsung membaca 'OWNER'
+      const storedUserStr = localStorage.getItem("user");
+      if (storedUserStr) {
+        try {
+          const storedUser = JSON.parse(storedUserStr);
+          storedUser.user_metadata = {
+            ...storedUser.user_metadata,
+            role: 'OWNER',
+            user_type: user_type
+          };
+          localStorage.setItem("user", JSON.stringify(storedUser));
+        } catch (e) {
+          console.error("Gagal parsing local storage user", e);
+        }
+      }
+
+      // 4. Lanjutkan proses seperti biasa
       localStorage.setItem("profile", JSON.stringify(profileData));
-      setProfile(profileData); // Sinkronkan ke context agar ProtectedRoute tidak redirect balik
-      navigate("/dashboard", { replace: true });
+      setProfile(profileData); // Sinkronkan ke context
+
+      // Arahkan ke dashboard/kuesioner tergantung komponen rute selanjutnya
+      navigate(user_type === "calon_pengusaha" ? "/dashboard/recommendations" : "/dashboard", { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Terjadi kesalahan. Coba lagi.");
       setLoading(false);
@@ -204,7 +239,7 @@ const Onboarding = () => {
             <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-500 rounded-full mix-blend-screen filter blur-[80px] opacity-60 animate-blob"></div>
             <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-purple-500 rounded-full mix-blend-screen filter blur-[80px] opacity-60 animate-blob animation-delay-2000"></div>
             <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-blue-500 rounded-full mix-blend-screen filter blur-[80px] opacity-60 animate-blob animation-delay-4000"></div>
-            
+
             <div className="relative z-20 text-center">
               <div className="w-20 h-20 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 flex items-center justify-center mx-auto mb-6 shadow-2xl">
                 <FiCheck className="text-white w-10 h-10" />
@@ -409,14 +444,14 @@ const Onboarding = () => {
                   {/* Kategori Usaha (Searchable Dropdown) */}
                   <div className="space-y-2 relative" ref={dropdownRef}>
                     <label className="block text-xs font-bold tracking-widest text-slate-500 uppercase">Kategori Usaha</label>
-                    <div 
+                    <div
                       className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 focus-within:bg-white transition-all"
                       onClick={() => setIsDropdownOpen(true)}
                     >
                       {isDropdownOpen ? (
                         <div className="flex items-center gap-3 w-full">
                           <FiSearch className="text-slate-400 flex-shrink-0" />
-                          <input 
+                          <input
                             type="text"
                             autoFocus
                             placeholder="Cari kategori... (cth: Kuliner)"
@@ -470,11 +505,10 @@ const Onboarding = () => {
                             setFormData({ ...formData, lama_usaha: duration });
                             setError("");
                           }}
-                          className={`px-5 py-3 rounded-full border-2 transition-all duration-200 text-sm font-bold active:scale-95 ${
-                            formData.lama_usaha === duration
-                              ? 'border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                              : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                          }`}
+                          className={`px-5 py-3 rounded-full border-2 transition-all duration-200 text-sm font-bold active:scale-95 ${formData.lama_usaha === duration
+                            ? 'border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
                         >
                           {duration}
                         </button>
@@ -487,11 +521,10 @@ const Onboarding = () => {
                     <button
                       type="submit"
                       disabled={loading || !isFormComplete}
-                      className={`w-full font-bold tracking-widest text-sm py-4 rounded-full shadow-xl transition-all active:scale-[0.97] flex justify-center items-center gap-2 group ${
-                        isFormComplete
-                          ? 'bg-[#111111] hover:bg-black text-white shadow-black/10'
-                          : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
-                      }`}
+                      className={`w-full font-bold tracking-widest text-sm py-4 rounded-full shadow-xl transition-all active:scale-[0.97] flex justify-center items-center gap-2 group ${isFormComplete
+                        ? 'bg-[#111111] hover:bg-black text-white shadow-black/10'
+                        : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                        }`}
                     >
                       {loading ? (
                         <span className="flex items-center gap-3">
