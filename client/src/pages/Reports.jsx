@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  FiDownload, FiArrowUpRight, FiArrowDownRight, FiPieChart,
+  FiDownload, FiPieChart,
   FiTrendingUp, FiTrendingDown, FiLayers, FiFileText, FiChevronDown, FiAlertCircle
 } from "react-icons/fi";
 import {
@@ -396,51 +396,79 @@ export default function Reports() {
       </div>
 
       {/* 2. Executive Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 relative z-10">
         {/* Income */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-slate-500 mb-1">{t('reports.total_income')}</p>
-            <h3 className="text-3xl font-black text-emerald-600 mb-2">{formatRupiah(metrics.income)}</h3>
-            <div className={`flex items-center gap-1.5 text-xs font-bold ${trends.incomeUp ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'} w-fit px-2 py-1.5 rounded-lg`}>
-              {trends.incomeUp ? <FiTrendingUp size={14} /> : <FiTrendingDown size={14} />}
-              <span>{trends.income} {t('reports.vs_last_month')}</span>
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                {t('reports.total_income')}
+              </span>
+              <div>
+                <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                  {formatRupiah(metrics.income)}
+                </h3>
+                <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                  <span className={`text-[10px] sm:text-xs font-medium ${trends.incomeUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {trends.income}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-slate-400 truncate">{t('reports.vs_last_month')}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shrink-0">
-            <FiArrowUpRight size={24} />
+            <div className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${trends.incomeUp ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+              {trends.incomeUp ? <FiTrendingUp size={18} /> : <FiTrendingDown size={18} />}
+            </div>
           </div>
         </div>
 
         {/* Expense */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-slate-500 mb-1">{t('reports.total_expense')}</p>
-            <h3 className="text-3xl font-black text-rose-600 mb-2">{formatRupiah(metrics.expense)}</h3>
-            <div className={`flex items-center gap-1.5 text-xs font-bold ${trends.expenseUp ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50'} w-fit px-2 py-1.5 rounded-lg`}>
-              {trends.expenseUp ? <FiTrendingUp size={14} /> : <FiTrendingDown size={14} />}
-              <span>{trends.expense} {t('reports.vs_last_month')}</span>
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                {t('reports.total_expense')}
+              </span>
+              <div>
+                <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                  {formatRupiah(metrics.expense)}
+                </h3>
+                <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                  <span className={`text-[10px] sm:text-xs font-medium ${trends.expenseUp ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    {trends.expense}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-slate-400 truncate">{t('reports.vs_last_month')}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-rose-600 shrink-0">
-            <FiArrowDownRight size={24} />
+            <div className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${!trends.expenseUp ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+              {!trends.expenseUp ? <FiTrendingUp size={18} /> : <FiTrendingDown size={18} />}
+            </div>
           </div>
         </div>
 
         {/* Net Profit */}
-        <div className="bg-indigo-600 p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow relative overflow-hidden text-white border border-indigo-500 flex items-center justify-between">
-          <div className="relative z-10">
-            <p className="text-sm font-semibold text-indigo-100 mb-1">{t('reports.net_profit')}</p>
-            <h3 className="text-3xl font-black mb-2">{formatRupiah(metrics.balance)}</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-indigo-200">{t('reports.profit_margin')}: {profitMargin}%</span>
-              <span className="text-xs font-medium text-indigo-200 bg-white/10 px-2 py-0.5 rounded-md">
-                {healthStatus}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                {t('reports.net_profit')}
               </span>
+              <div>
+                <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                  {formatRupiah(metrics.balance)}
+                </h3>
+                <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                  <span className="text-[10px] sm:text-xs font-medium text-emerald-500">
+                    {t('reports.profit_margin')}: {profitMargin}%
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-slate-400 truncate">{healthStatus}</span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-indigo-200 shrink-0 relative z-10 border border-white/20">
-            <FiTrendingUp size={24} />
+            <div className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${metrics.balance >= 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+              {metrics.balance >= 0 ? <FiTrendingUp size={18} /> : <FiTrendingDown size={18} />}
+            </div>
           </div>
         </div>
       </div>

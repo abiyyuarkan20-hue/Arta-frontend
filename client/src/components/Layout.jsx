@@ -1,25 +1,26 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  FiHome,
-  FiList,
-  FiPieChart,
-  FiSettings,
   FiMenu,
   FiX,
   FiChevronDown,
   FiUser,
   FiLogOut,
   FiUserCheck,
-  FiTrendingUp,
   FiMoon,
   FiSun,
-  FiGlobe,
-  FiClock
+  FiGlobe
 } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import logoImg from "../assets/logo-2.png";
+import dashboardIcon from "../assets/sidebar-icons/dashboard.png";
+import transactionIcon from "../assets/sidebar-icons/transaction.png";
+import reportIcon from "../assets/sidebar-icons/report.png";
+import forecastingIcon from "../assets/sidebar-icons/forecasting.png";
+import settingIcon from "../assets/sidebar-icons/setting.png";
+import clockIcon from "../assets/sidebar-icons/clock.png";
+import rekomendasiIcon from "../assets/sidebar-icons/rekomendasi-bussiness.png";
 import { supabase } from "../services/supabaseClient";
 
 const Layout = () => {
@@ -121,23 +122,22 @@ const Layout = () => {
 
   const menuItems = userType === "umkm_aktif"
     ? [
-      { name: t("menu.dashboard"), path: "/dashboard", icon: <FiHome /> },
-      { name: t("menu.transactions"), path: "/dashboard/transactions", icon: <FiList /> },
-      { name: t("menu.reports"), path: "/dashboard/reports", icon: <FiPieChart /> },
-      { name: t("menu.ai_prediction"), path: "/dashboard/forecasting", icon: <FiTrendingUp /> },
+      { name: t("menu.dashboard"), path: "/dashboard", icon: <img src={dashboardIcon} className="w-6 h-6 object-contain" /> },
+      { name: t("menu.transactions"), path: "/dashboard/transactions", icon: <img src={transactionIcon} className="w-6 h-6 object-contain" /> },
+      { name: t("menu.reports"), path: "/dashboard/reports", icon: <img src={reportIcon} className="w-6 h-6 object-contain" /> },
+      { name: t("menu.ai_prediction"), path: "/dashboard/forecasting", icon: <img src={forecastingIcon} className="w-6 h-6 object-contain" /> },
       {
         name: t("menu.settings"),
-        icon: <FiSettings />,
-        subItems: settingsSubItems // Memasukkan submenu yang sudah difilter
+        icon: <img src={settingIcon} className="w-6 h-6 object-contain" />,
+        subItems: settingsSubItems
       },
     ]
     : [
-      { name: t("menu.dashboard"), path: "/dashboard", icon: <FiHome /> },
-      // Calon pengusaha tidak punya Transaksi & Laporan, tapi Rekomendasi
-      { name: "Rekomendasi Bisnis", path: "/dashboard/recommendations", icon: <FiPieChart /> },
+      { name: t("menu.dashboard"), path: "/dashboard", icon: <img src={dashboardIcon} className="w-6 h-6 object-contain" /> },
+      { name: "Rekomendasi Bisnis", path: "/dashboard/recommendations", icon: <img src={rekomendasiIcon} className="w-6 h-6 object-contain" /> },
       {
         name: t("menu.settings"),
-        icon: <FiSettings />,
+        icon: <img src={settingIcon} className="w-6 h-6 object-contain" />,
         subItems: [
           { name: t("menu.profile_account"), path: "/dashboard/profile" }
         ]
@@ -298,7 +298,7 @@ const Layout = () => {
               } text-slate-500 hover:bg-slate-50`}
           >
             <span className="text-xl min-w-[24px] flex justify-center pt-0.5 shrink-0">
-              <FiClock />
+              <img src={clockIcon} className="w-6 h-6 object-contain" />
             </span>
             <AnimatePresence>
               {!isDesktopSidebarCollapsed && (
@@ -428,7 +428,7 @@ const Layout = () => {
               <div className="border-t border-slate-100 p-6">
                 <div className="flex items-start gap-3 px-5 py-4 rounded-xl transition-colors duration-200 cursor-default text-slate-500 hover:bg-slate-50">
                   <span className="text-xl min-w-[24px] flex justify-center pt-0.5 shrink-0">
-                    <FiClock />
+                    <img src={clockIcon} className="w-6 h-6 object-contain" />
                   </span>
                   <div>
                     <p className="text-base font-semibold text-slate-800 tabular-nums leading-tight">

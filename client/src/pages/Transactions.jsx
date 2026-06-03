@@ -4,9 +4,10 @@ import { useTranslation } from "react-i18next";
 import imageCompression from 'browser-image-compression';
 import transactionService from "../services/transactionService";
 import { filterTransactionsByRange } from "../utils/cashflowHelper";
+import ExcelJS from "exceljs";
 import {
   FiPlus, FiSearch, FiFilter, FiDownload, FiMoreVertical,
-  FiArrowUpRight, FiArrowDownRight, FiX, FiZap, FiLoader,
+  FiArrowUpRight, FiArrowDownRight, FiTrendingUp, FiTrendingDown, FiX, FiZap, FiLoader,
   FiUploadCloud, FiPaperclip, FiEdit2, FiTrash2, FiChevronDown,
   FiAlertCircle, FiRefreshCw, FiCalendar, FiCheckCircle, FiCircle
 } from "react-icons/fi";
@@ -59,6 +60,7 @@ export default function Transactions({ isDashboard = false }) {
   const role = getCurrentUserRole();
   const canAdd = role === "OWNER" || role === "ADMIN"; // Admin & Owner boleh tambah
   const canEditDelete = role === "OWNER"; // Hanya Owner boleh edit/hapus
+  const canToggleCheck = role === "OWNER" || role === "ADMIN"; // Owner & Admin boleh ubah status cek
 
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -235,33 +237,206 @@ export default function Transactions({ isDashboard = false }) {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (filteredTransactions.length === 0) {
       alert("Tidak ada data untuk diexport");
       return;
     }
-    const headers = ["Tanggal", "Deskripsi", "Kategori", "Tipe", "Nominal", "Status Cek"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredTransactions.map(trx => [
-        trx.date,
-        `"${trx.description}"`,
-        trx.category,
-        trx.type,
-        trx.amount,
-        trx.is_checked ? "Sudah Dicek" : "Belum Dicek"
-      ].join(","))
-    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const fmtDate = (d) => {
+      if (!d) return "-";
+      const dt = new Date(d);
+      if (isNaN(dt)) return d;
+      return dt;
+    };
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "MSME Finance";
+    workbook.created = new Date();
+
+    const ws = workbook.addWorksheet("Laporan Transaksi", {
+      views: [{ state: "frozen", ySplit: 1 }]
+    });
+
+    // ── Column definitions ──
+    const columns = [
+      { header: "No", key: "no", width: 6 },
+      { header: "Tanggal", key: "date", width: 18 },
+      { header: "Deskripsi", key: "desc", width: 36 },
+      { header: "Kategori", key: "category", width: 22 },
+      { header: "Tipe", key: "type", width: 16 },
+      { header: "Nominal (Rp)", key: "amount", width: 18 },
+      { header: "Status Cek", key: "status", width: 14 },
+    ];
+    ws.columns = columns;
+
+    // ── Style helpers ──
+    const headerFont = { name: "Calibri", size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    const headerFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
+    const headerAlign = { horizontal: "center", vertical: "middle" };
+    const borderStyle = {
+      top: { style: "thin", color: { argb: "FFE2E8F0" } },
+      left: { style: "thin", color: { argb: "FFE2E8F0" } },
+      bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+      right: { style: "thin", color: { argb: "FFE2E8F0" } },
+    };
+    const bodyFont = { name: "Calibri", size: 11 };
+    const bodyFontBold = { name: "Calibri", size: 11, bold: true };
+
+    // ── Header row ──
+    const headerRow = ws.getRow(1);
+    headerRow.height = 32;
+    columns.forEach((col, i) => {
+      const cell = headerRow.getCell(i + 1);
+      cell.value = col.header;
+      cell.font = headerFont;
+      cell.fill = headerFill;
+      cell.alignment = headerAlign;
+      cell.border = borderStyle;
+    });
+
+    // ── Data rows ──
+    const dataRows = filteredTransactions.map((trx) => ({
+      no: "",
+      date: fmtDate(trx.date),
+      desc: trx.description || "-",
+      category: trx.category || "-",
+      type: trx.type || "-",
+      amount: Number(trx.amount || 0),
+      status: trx.is_checked ? "Sudah Dicek" : "Belum Dicek",
+    }));
+
+    let rowNum = 2;
+    dataRows.forEach((row, i) => {
+      const r = ws.getRow(rowNum);
+      r.height = 22;
+
+      r.getCell(1).value = i + 1;
+      r.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+
+      const dateVal = row.date;
+      if (dateVal instanceof Date && !isNaN(dateVal)) {
+        r.getCell(2).value = dateVal;
+        r.getCell(2).numFmt = "dd mmmm yyyy";
+      } else {
+        r.getCell(2).value = row.date;
+      }
+      r.getCell(2).alignment = { vertical: "middle" };
+
+      r.getCell(3).value = row.desc;
+      r.getCell(4).value = row.category;
+      r.getCell(5).value = row.type;
+      r.getCell(5).alignment = { horizontal: "center", vertical: "middle" };
+
+      r.getCell(6).value = row.amount;
+      r.getCell(6).numFmt = '#,##0';
+      r.getCell(6).alignment = { horizontal: "right", vertical: "middle" };
+
+      r.getCell(7).value = row.status;
+      r.getCell(7).alignment = { horizontal: "center", vertical: "middle" };
+
+      [1, 2, 3, 4, 5, 6, 7].forEach((c) => {
+        const cell = r.getCell(c);
+        cell.font = bodyFont;
+        cell.border = borderStyle;
+      });
+
+      // Alternate row background
+      if (i % 2 === 1) {
+        [1, 2, 3, 4, 5, 6, 7].forEach((c) => {
+          r.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF8FAFC" } };
+        });
+      }
+
+      rowNum++;
+    });
+
+    // ── Summary section ──
+    rowNum++; // empty row
+
+    const totalIncome = filteredTransactions
+      .filter(t => t.type === "Pemasukan")
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const totalExpense = filteredTransactions
+      .filter(t => t.type === "Pengeluaran")
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+    const balance = totalIncome - totalExpense;
+
+    const summaryLabelStyle = { font: bodyFontBold, border: borderStyle, alignment: { vertical: "middle" } };
+    const summaryValueStyle = { font: bodyFontBold, border: borderStyle, alignment: { horizontal: "right", vertical: "middle" }, numFmt: '#,##0' };
+    const summaryFill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEEF2FF" } };
+
+    const addSummaryRow = (label, value) => {
+      const r = ws.getRow(rowNum);
+      r.height = 24;
+      r.getCell(3).value = label;
+      r.getCell(3).font = bodyFontBold;
+      r.getCell(3).border = borderStyle;
+      r.getCell(3).alignment = { vertical: "middle" };
+      r.getCell(6).value = value;
+      r.getCell(6).numFmt = '#,##0';
+      r.getCell(6).font = bodyFontBold;
+      r.getCell(6).border = borderStyle;
+      r.getCell(6).alignment = { horizontal: "right", vertical: "middle" };
+      [1, 2, 4, 5, 7].forEach((c) => {
+        r.getCell(c).border = borderStyle;
+      });
+      [1, 2, 3, 4, 5, 6, 7].forEach((c) => {
+        r.getCell(c).fill = summaryFill;
+      });
+      rowNum++;
+    };
+
+    // Section title
+    const sectionRow = ws.getRow(rowNum);
+    sectionRow.getCell(3).value = "RINGKASAN";
+    sectionRow.getCell(3).font = { name: "Calibri", size: 12, bold: true, color: { argb: "FF4F46E5" } };
+    sectionRow.height = 28;
+    rowNum++;
+
+    addSummaryRow("Total Pemasukan", totalIncome);
+    addSummaryRow("Total Pengeluaran", totalExpense);
+    addSummaryRow("Saldo Bersih", balance);
+
+    // Balance color
+    const balRow = ws.getRow(rowNum - 1);
+    balRow.getCell(6).font = {
+      name: "Calibri", size: 11, bold: true,
+      color: { argb: balance >= 0 ? "FF059669" : "FFDC2626" }
+    };
+
+    // ── Footer metadata ──
+    const exporterName = (() => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const profile = JSON.parse(localStorage.getItem("profile") || "{}");
+        return profile?.nama_lengkap || user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "-";
+      } catch { return "-"; }
+    })();
+    rowNum++;
+    const footerRow = ws.getRow(rowNum);
+    footerRow.getCell(3).value = `Diexport oleh: ${exporterName}`;
+    footerRow.getCell(3).font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF94A3B8" } };
+    rowNum++;
+    const footerRow2 = ws.getRow(rowNum);
+    footerRow2.getCell(3).value = `Diexport pada: ${new Date().toLocaleString("id-ID", { dateStyle: "long", timeStyle: "short" })}`;
+    footerRow2.getCell(3).font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF94A3B8" } };
+    rowNum++;
+    const footerRow3 = ws.getRow(rowNum);
+    footerRow3.getCell(3).value = `Total Transaksi: ${filteredTransactions.length}`;
+    footerRow3.getCell(3).font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF94A3B8" } };
+
+    // ── Write file ──
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `Data_Transaksi_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("download", `Laporan_Transaksi_${new Date().toISOString().split('T')[0]}.xlsx`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleToggleCheck = (id) => {
@@ -454,25 +629,56 @@ export default function Transactions({ isDashboard = false }) {
               />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-slate-500 mb-1">Total Pemasukan</p>
-                <h3 className="text-2xl font-black text-emerald-600">{formatRupiah(metrics.income)}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 relative z-10">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                    Total Pemasukan
+                  </span>
+                  <div>
+                    <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                      {formatRupiah(metrics.income)}
+                    </h3>
+                  </div>
+                </div>
+                <div className="shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-50 text-emerald-500">
+                  <FiTrendingUp size={18} />
+                </div>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-slate-500 mb-1">Total Pengeluaran</p>
-                <h3 className="text-2xl font-black text-rose-600">{formatRupiah(metrics.expense)}</h3>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                    Total Pengeluaran
+                  </span>
+                  <div>
+                    <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                      {formatRupiah(metrics.expense)}
+                    </h3>
+                  </div>
+                </div>
+                <div className="shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-rose-50 text-rose-500">
+                  <FiTrendingDown size={18} />
+                </div>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-slate-500 mb-1">Arus Kas Bersih</p>
-                <h3 className={`text-2xl font-black ${metrics.balance >= 0 ? 'text-blue-600' : 'text-rose-600'}`}>
-                  {metrics.balance >= 0 ? '+' : ''}{formatRupiah(metrics.balance)}
-                </h3>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                    Arus Kas Bersih
+                  </span>
+                  <div>
+                    <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                      {metrics.balance >= 0 ? '+' : ''}{formatRupiah(metrics.balance)}
+                    </h3>
+                  </div>
+                </div>
+                <div className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${metrics.balance >= 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+                  {metrics.balance >= 0 ? <FiTrendingUp size={18} /> : <FiTrendingDown size={18} />}
+                </div>
               </div>
             </div>
           </div>
@@ -552,7 +758,7 @@ export default function Transactions({ isDashboard = false }) {
               <FiDownload /> <span>{t('transactions.export_csv')}</span>
             </button>
             {canAdd && (
-              <button onClick={() => { setEditingId(null); setIsModalOpen(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-black hover:bg-blue-700 transition-all active:scale-95">
+              <button onClick={() => { setEditingId(null); setIsModalOpen(true); }} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-black hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95">
                 <FiPlus size={18} /> <span>{t('transactions.add_transaction')}</span>
               </button>
             )}
@@ -591,7 +797,11 @@ export default function Transactions({ isDashboard = false }) {
                     </td>
                     <td className="px-6 py-4 text-center">{trx.invoice ? <button onClick={() => setViewingInvoice(trx)} className="text-indigo-600">Lihat</button> : "-"}</td>
                     <td className="px-6 py-4 text-center">
-                      <button onClick={() => handleToggleCheck(trx.id)} className={`px-3 py-1.5 rounded-lg ${trx.is_checked ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"}`}>
+                      <button
+                        onClick={() => handleToggleCheck(trx.id)}
+                        disabled={!canToggleCheck}
+                        className={`px-3 py-1.5 rounded-lg transition-all ${trx.is_checked ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"} ${!canToggleCheck ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:brightness-95"}`}
+                      >
                         {trx.is_checked ? t('transactions.status_checked') : t('transactions.status_unchecked')}
                       </button>
                     </td>
@@ -903,7 +1113,7 @@ export default function Transactions({ isDashboard = false }) {
                   <button
                     onClick={handleSaveTransaction}
                     disabled={isSaving}
-                    className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-black hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 active:scale-95 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="px-8 py-3 bg-indigo-600 text-white rounded-xl text-sm font-black hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isSaving ? (
                       <>

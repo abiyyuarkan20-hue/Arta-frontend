@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   FiShield, FiPlus, FiEdit2, FiKey, FiTrash2, FiUser, FiX,
   FiBriefcase, FiMapPin, FiTag, FiSave, FiCheck, FiLoader,
   FiPhone, FiMail, FiGlobe, FiUsers, FiCalendar, FiFileText,
-  FiInstagram, FiCreditCard, FiHash
+  FiInstagram, FiCreditCard, FiHash, FiSearch
 } from "react-icons/fi";
 import api from "../services/api";
 import { supabase } from "../services/supabaseClient";
@@ -54,6 +54,8 @@ const Settings = () => {
 
   const [usersList, setUsersList] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [roleSearchTerm, setRoleSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
 
   // === FUNGSI FETCH USER (Bersih, tanpa auto-set) ===
   const fetchUsers = async () => {
@@ -83,11 +85,32 @@ const Settings = () => {
     }
   };
 
+  const filteredUsers = useMemo(() => {
+    let result = usersList;
+    if (roleSearchTerm.trim()) {
+      const term = roleSearchTerm.toLowerCase();
+      result = result.filter(u =>
+        u.display_name?.toLowerCase().includes(term) ||
+        u.email?.toLowerCase().includes(term)
+      );
+    }
+    if (roleFilter) {
+      result = result.filter(u => u.display_role === roleFilter.toUpperCase());
+    }
+    return result;
+  }, [usersList, roleSearchTerm, roleFilter]);
+
   useEffect(() => {
     if (activeTab === "roles" && isOwner) {
       fetchUsers();
     }
   }, [activeTab, isOwner]);
+
+  useEffect(() => {
+    if (!isEditModalOpen) {
+      setEditUserData({ id: "", name: "", role: "User", isOwner: false });
+    }
+  }, [isEditModalOpen]);
 
   // State for Profil Usaha
   const [saveStatus, setSaveStatus] = useState("idle");
@@ -207,24 +230,62 @@ const Settings = () => {
     e.preventDefault();
     setEditLoading(true);
     try {
-      const payload = { name: editUserData.name };
-      if (!editUserData.isOwner) {
-        payload.role = editUserData.role.toUpperCase();
-      }
-
-      // Pastikan nama di session saat ini ter-update jika ngedit diri sendiri
-      const editingUser = usersList.find(u => u.id === editUserData.id);
-      if (editingUser?.is_current_user) {
-        await supabase.auth.updateUser({
-          data: { name: editUserData.name, full_name: editUserData.name }
-        });
-      }
+      const payload = {
+        name: editUserData.name,
+        role: (editUserData.role || "User").toUpperCase()
+      };
 
       await api.put(`/api/users/${editUserData.id}`, payload);
 
+      // Update session user + profile di localStorage agar nama langsung berubah
+      const localUser = (() => {
+        try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
+      })();
+      const editedUser = usersList.find(u => u.id === editUserData.id);
+      const isEditingSelf = editedUser && localUser?.email && editedUser.email === localUser.email;
+
+      if (isEditingSelf) {
+        // Update profile di backend agar tersimpan permanen (hanya saat edit diri sendiri)
+        try {
+          await api.put("/api/profile", { nama_lengkap: editUserData.name });
+        } catch (_) {}
+
+        try {
+          const { data: authData } = await supabase.auth.updateUser({
+            data: { nama_lengkap: editUserData.name, name: editUserData.name, full_name: editUserData.name }
+          });
+          if (authData?.user) {
+            localStorage.setItem("user", JSON.stringify(authData.user));
+          }
+        } catch (_) { /* fallback: langsung patch localStorage */ }
+
+        if (localUser?.user_metadata) {
+          localUser.user_metadata.nama_lengkap = editUserData.name;
+          localUser.user_metadata.name = editUserData.name;
+          localUser.user_metadata.full_name = editUserData.name;
+          localStorage.setItem("user", JSON.stringify(localUser));
+        }
+
+        // Update localStorage.profile dengan nama baru (hanya saat edit diri sendiri)
+        const localProfile = (() => {
+          try { return JSON.parse(localStorage.getItem("profile") || "{}"); } catch { return {}; }
+        })();
+        if (localProfile && typeof localProfile === "object") {
+          localProfile.nama_lengkap = editUserData.name;
+          localStorage.setItem("profile", JSON.stringify(localProfile));
+        }
+      }
+
+      // fetchUsers dulu (data backend mungkin stale untuk OWNER), lalu timpa nama final
+      await fetchUsers();
+      setUsersList(prev => prev.map(u =>
+        u.id === editUserData.id
+          ? { ...u, name: editUserData.name, display_name: editUserData.name }
+          : u
+      ));
+
       alert("Akun berhasil diperbarui!");
       setIsEditModalOpen(false);
-      fetchUsers();
     } catch (err) {
       alert("Gagal update akun: " + (err.response?.data?.message || err.message));
     } finally {
@@ -256,17 +317,41 @@ const Settings = () => {
             <div className="space-y-6">
               {/* Tabel User */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="font-bold text-slate-800">{t('settings.users_list')}</h3>
-                    <p className="text-xs text-slate-500 mt-1">{t('settings.users_list_desc')}</p>
+                <div className="px-6 py-5 border-b border-slate-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-bold text-slate-800">{t('settings.users_list')}</h3>
+                      <p className="text-xs text-slate-500 mt-1">{t('settings.users_list_desc')}</p>
+                    </div>
+                    <button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md shadow-indigo-500/20"
+                    >
+                      <FiPlus size={18} /> {t('settings.add_new_access')}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="bg-[#111111] hover:bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md"
-                  >
-                    <FiPlus size={18} /> {t('settings.add_new_access')}
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                    <div className="relative flex-1 max-w-xs">
+                      <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={roleSearchTerm}
+                        onChange={(e) => setRoleSearchTerm(e.target.value)}
+                        placeholder={t('settings.role_search_placeholder')}
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+                    <select
+                      value={roleFilter}
+                      onChange={(e) => setRoleFilter(e.target.value)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                    >
+                      <option value="">{t('settings.role_filter_all')}</option>
+                      <option value="OWNER">OWNER</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="USER">USER</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -286,13 +371,15 @@ const Settings = () => {
                             <FiLoader className="animate-spin inline-block mr-2" /> Memuat data...
                           </td>
                         </tr>
-                      ) : usersList.length === 0 ? (
+                      ) : filteredUsers.length === 0 ? (
                         <tr>
-                          <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
-                            Belum ada akun terdaftar.
+                          <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
+                            {usersList.length === 0
+                              ? 'Belum ada akun terdaftar.'
+                              : 'Tidak ada akun yang cocok dengan pencarian.'}
                           </td>
                         </tr>
-                      ) : usersList.map(user => {
+                      ) : filteredUsers.map(user => {
                         const userName = user.display_name;
                         const userRole = user.display_role;
                         const isThisOwner = userRole === "OWNER";
@@ -328,21 +415,23 @@ const Settings = () => {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => {
-                                    setEditUserData({
-                                      id: user.id,
-                                      name: userName,
-                                      role: userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase(),
-                                      isOwner: isThisOwner
-                                    });
-                                    setIsEditModalOpen(true);
-                                  }}
-                                  className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-lg hover:bg-indigo-50"
-                                  title={isThisOwner ? 'Edit Nama' : t('settings.edit_access')}
-                                >
-                                  <FiEdit2 size={16} />
-                                </button>
+                                {!isThisOwner && (
+                                  <button
+                                    onClick={() => {
+                                      setEditUserData({
+                                        id: user.id,
+                                        name: userName,
+                                        role: userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase(),
+                                        isOwner: isThisOwner
+                                      });
+                                      setIsEditModalOpen(true);
+                                    }}
+                                    className="text-slate-400 hover:text-indigo-600 transition-colors p-2 rounded-lg hover:bg-indigo-50"
+                                    title={t('settings.edit_access')}
+                                  >
+                                    <FiEdit2 size={16} />
+                                  </button>
+                                )}
                                 {!isThisOwner && !user.is_current_user && (
                                   <button
                                     onClick={() => handleDeleteUser(user.id)}
@@ -561,10 +650,10 @@ const Settings = () => {
                 <button
                   onClick={handleBusinessSave}
                   disabled={saveStatus === "saving" || saveStatus === "saved"}
-                  className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl font-black text-sm transition-all duration-300 shadow-md active:scale-95
+                  className={`flex items-center gap-2.5 px-8 py-3.5 rounded-xl font-black text-sm transition-all duration-300 shadow-md active:scale-95
                     ${saveStatus === "saved"
                       ? "bg-emerald-500 text-white shadow-emerald-500/30"
-                      : "bg-slate-900 text-white hover:bg-slate-700 shadow-slate-900/20"
+                      : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/20"
                     }
                     disabled:opacity-80 disabled:cursor-not-allowed`}
                 >
@@ -640,7 +729,7 @@ const Settings = () => {
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" disabled={addLoading}>
                   {t('settings.cancel')}
                 </button>
-                <button type="submit" disabled={addLoading} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <button type="submit" disabled={addLoading} className="flex-1 py-3.5 px-4 rounded-xl font-black text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                   {addLoading && <FiLoader size={14} className="animate-spin" />}
                   {addLoading ? 'Membuat...' : t('settings.save_account')}
                 </button>
@@ -701,7 +790,7 @@ const Settings = () => {
                 <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" disabled={editLoading}>
                   {t('settings.cancel')}
                 </button>
-                <button type="submit" disabled={editLoading} className="flex-1 py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <button type="submit" disabled={editLoading} className="flex-1 py-3.5 px-4 rounded-xl font-black text-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                   {editLoading && <FiLoader size={14} className="animate-spin" />}
                   {editLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>

@@ -71,6 +71,19 @@ const FormSelect = ({ label, icon: Icon, value, onChange, options }) => (
 export default function Profile() {
   const { t } = useTranslation();
   const fileInputRef = useRef(null);
+
+  const currentUserRole = (() => {
+    try {
+      const profile = JSON.parse(localStorage.getItem("profile") || "{}");
+      if (profile.role) return profile.role.toUpperCase();
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      return (user.user_metadata?.role || "USER").toUpperCase();
+    } catch (e) {
+      return "USER";
+    }
+  })();
+  const isOwner = currentUserRole === "OWNER";
+
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved
   const [avatarPreview, setAvatarPreview] = useState(null);
 
@@ -112,12 +125,14 @@ export default function Profile() {
   // Load user from localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
+    const storedProfile = localStorage.getItem("profile");
+    const profileData = (() => { try { return JSON.parse(storedProfile || "{}"); } catch { return {}; } })();
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
         setProfile((prev) => ({
           ...prev,
-          namaLengkap: user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || "",
+          namaLengkap: user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || user?.user_metadata?.name || profileData?.nama_lengkap || "",
           email: user?.email || "",
           telepon: user?.user_metadata?.telepon || "",
           bio: user?.user_metadata?.bio || "",
@@ -183,9 +198,10 @@ export default function Profile() {
       }
 
       // 2. Siapkan payload update untuk Supabase Auth
+      // Hanya OWNER yang bisa mengubah nama lengkap
       const updatePayload = {
         data: {
-          nama_lengkap: profile.namaLengkap,
+          ...(isOwner ? { nama_lengkap: profile.namaLengkap } : {}),
           telepon: profile.telepon,
           bio: profile.bio,
           ...(avatarPreview ? { avatar: avatarPreview } : {}),
@@ -204,7 +220,7 @@ export default function Profile() {
       // Update juga ke backend database profiles agar tersinkron dan tidak balik ke awal saat refresh
       // Hapus avatar dari payload backend untuk menghindari error 413 (Payload Too Large) di Vercel
       const backendPayload = {
-        nama_lengkap: profile.namaLengkap,
+        ...(isOwner ? { nama_lengkap: profile.namaLengkap } : {}),
         telepon: profile.telepon,
         bio: profile.bio,
       };
@@ -396,7 +412,16 @@ export default function Profile() {
                 value={profile.namaLengkap}
                 onChange={handleChange("namaLengkap")}
                 placeholder="Masukkan nama lengkap Anda"
+                disabled={!isOwner}
               />
+              {!isOwner && (
+                <div className="flex items-start gap-1.5 p-3 bg-slate-50 rounded-xl">
+                  <FiShield size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                    Hanya pemilik akun (Owner) yang dapat mengubah nama lengkap.
+                  </p>
+                </div>
+              )}
               <FormInput
                 label={t('profile.email_address')}
                 icon={FiMail}
@@ -555,10 +580,10 @@ export default function Profile() {
             <button
               onClick={handleSave}
               disabled={saveStatus === "saving" || saveStatus === "saved"}
-              className={`flex items-center gap-2.5 px-8 py-3.5 rounded-2xl font-black text-sm transition-all duration-300 shadow-md active:scale-95
+              className={`flex items-center gap-2.5 px-8 py-3.5 rounded-xl font-black text-sm transition-all duration-300 shadow-md active:scale-95
                 ${saveStatus === "saved"
                   ? "bg-emerald-500 text-white shadow-emerald-500/30"
-                  : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/30"
+                  : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-500/20"
                 }
                 disabled:opacity-80 disabled:cursor-not-allowed`}
             >

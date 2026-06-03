@@ -48,6 +48,11 @@ const resources = {
         "table_desc": "Deskripsi",
         "table_category": "Kategori",
         "table_amount": "Nominal",
+        "table_desc_id": "Deskripsi / ID",
+        "table_status_check": "Status Cek",
+        "no_transactions_filter": "Belum ada transaksi sesuai filter. Mulai catat transaksi pertama Anda!",
+        "status_checked": "Sudah Dicek",
+        "status_unchecked": "Belum Dicek",
         "welcome_new": "Halo, {{name}}! <br/>Siap Memulai Bisnismu?",
         "welcome_new_desc": "Kami siap membantu merencanakan keuangan, memantau performa, dan memberikan strategi khusus untuk bisnis Anda.",
         "start_business_questionnaire": "Mulai Kuesioner Bisnis",
@@ -286,7 +291,9 @@ const resources = {
         "saving": "Menyimpan...",
         "save_success": "Berhasil Disimpan!",
         "edit_access": "Edit Akses",
-        "delete_access": "Hapus Akses"
+        "delete_access": "Hapus Akses",
+        "role_search_placeholder": "Cari nama atau email...",
+        "role_filter_all": "Semua Role"
       },
        "recommendations": {
          "back": "Kembali",
@@ -618,6 +625,11 @@ const resources = {
         "table_desc": "Description",
         "table_category": "Category",
         "table_amount": "Amount",
+        "table_desc_id": "Description / ID",
+        "table_status_check": "Status Check",
+        "no_transactions_filter": "No transactions match the filter. Start recording your first transaction!",
+        "status_checked": "Checked",
+        "status_unchecked": "Unchecked",
         "welcome_new": "Hello, {{name}}! <br/>Ready to Start Your Business?",
         "welcome_new_desc": "We are ready to help plan finances, monitor performance, and provide specific strategies for your business.",
         "start_business_questionnaire": "Start Business Questionnaire",
@@ -856,7 +868,9 @@ const resources = {
         "saving": "Saving...",
         "save_success": "Successfully Saved!",
         "edit_access": "Edit Access",
-        "delete_access": "Delete Access"
+        "delete_access": "Delete Access",
+        "role_search_placeholder": "Search name or email...",
+        "role_filter_all": "All Roles"
       },
       "recommendations": {
         "back": "Back",

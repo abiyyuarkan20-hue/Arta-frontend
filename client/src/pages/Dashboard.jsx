@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../services/api";
 import transactionService from "../services/transactionService";
 import { computeDailyCashflow, normalizeTransactions, filterTransactionsByRange } from "../utils/cashflowHelper";
 import {
   FiTrendingUp,
+  FiTrendingDown,
   FiArrowUpRight,
   FiArrowDownRight,
   FiPieChart,
@@ -76,6 +77,10 @@ const Dashboard = () => {
   const [cashFlowChartData, setCashFlowChartData] = useState([]);
   // Fitur Tabel Data Transaksi Dashboard
   const [searchTerm, setSearchTerm] = useState("");
+  // Fitur Manajemen Akun (Owner only)
+  const [usersList, setUsersList] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [usersError, setUsersError] = useState("");
   const [filterType, setFilterType] = useState("Semua");
 
   useEffect(() => {
@@ -161,10 +166,51 @@ const Dashboard = () => {
         .finally(() => {
           setLoading(false);
         });
+
     } else {
       setLoading(false);
     }
   }, [filterWaktu]);
+
+  // Fetch daftar akun untuk Owner — reaktif terhadap perubahan profile
+  const fetchUsers = () => {
+    const role = String(profile?.role || user?.user_metadata?.role || "").toUpperCase();
+    if (role !== "OWNER") {
+      setUsersList([]);
+      setUsersError("");
+      return;
+    }
+    setLoadingUsers(true);
+    setUsersError("");
+    api.get("/api/users")
+      .then((res) => {
+        let raw = res.data?.data || res.data || [];
+        if (!Array.isArray(raw)) {
+          console.warn("[Manajemen Akun] Response bukan array:", raw);
+          if (raw && typeof raw === "object") {
+            for (const key of ["users", "accounts", "members", "list"]) {
+              if (Array.isArray(raw[key])) { raw = raw[key]; break; }
+            }
+          }
+        }
+        const users = (Array.isArray(raw) ? raw : []).map((u) => ({
+          ...u,
+          display_name: u.name || u.user_metadata?.name || u.raw_user_meta_data?.name || u.full_name || "Unknown",
+          display_role: (u.role || u.user_metadata?.role || u.raw_user_meta_data?.role || "USER").toUpperCase(),
+        }));
+        setUsersList(users);
+      })
+      .catch((err) => {
+        console.error("[Manajemen Akun] Gagal fetch:", err);
+        setUsersList([]);
+        setUsersError(err.response?.data?.message || err.message || "Gagal memuat data.");
+      })
+      .finally(() => setLoadingUsers(false));
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [profile, user]);
 
   const handleDismissPrompt = () => setShowProfilePrompt(false);
   const handleGoToProfile = () => {
@@ -506,74 +552,85 @@ const Dashboard = () => {
         {/* METRICS CARDS (4 Kolom Layout seperti gambar) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 relative z-10">
           {/* Card 1: Pemasukan */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
-              <FiArrowUpRight size={14} className="shrink-0" />
-              <span className="text-xs sm:text-sm font-medium truncate">
-                {t("dashboard.income")}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
-                {formatRupiah(dashboardData?.summary?.income || 0)}
-              </h3>
-              <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
-                <span className="text-[10px] sm:text-xs font-medium text-emerald-500">
-                  +{dashboardData?.summary?.income_change || 0}%
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                  {t("dashboard.income")}
                 </span>
-                <span className="text-[10px] sm:text-xs text-slate-400 truncate">vs lalu</span>
+                <div>
+                  <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                    {formatRupiah(dashboardData?.summary?.income || 0)}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                    <span className="text-[10px] sm:text-xs font-medium text-emerald-500">
+                      +{dashboardData?.summary?.income_change || 0}%
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 truncate">vs lalu</span>
+                  </div>
+                </div>
+              </div>
+              <div className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${(dashboardData?.summary?.income_change || 0) >= 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+                {(dashboardData?.summary?.income_change || 0) >= 0 ? <FiTrendingUp size={18} /> : <FiTrendingDown size={18} />}
               </div>
             </div>
           </div>
 
           {/* Card 2: Pengeluaran */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
-              <FiArrowDownRight size={14} className="shrink-0" />
-              <span className="text-xs sm:text-sm font-medium truncate">
-                {t("dashboard.expense")}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
-                {formatRupiah(dashboardData?.summary?.expense || 0)}
-              </h3>
-              <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
-                <span className="text-[10px] sm:text-xs font-medium text-rose-500">
-                  +{dashboardData?.summary?.expense_change || 0}%
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                  {t("dashboard.expense")}
                 </span>
-                <span className="text-[10px] sm:text-xs text-slate-400 truncate">vs lalu</span>
+                <div>
+                  <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                    {formatRupiah(dashboardData?.summary?.expense || 0)}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                    <span className="text-[10px] sm:text-xs font-medium text-rose-500">
+                      +{dashboardData?.summary?.expense_change || 0}%
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 truncate">vs lalu</span>
+                  </div>
+                </div>
+              </div>
+              <div className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${(dashboardData?.summary?.expense_change || 0) <= 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+                {(dashboardData?.summary?.expense_change || 0) <= 0 ? <FiTrendingUp size={18} /> : <FiTrendingDown size={18} />}
               </div>
             </div>
           </div>
 
           {/* Card 3: Laba Bersih */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
-              <FiTrendingUp size={14} className="shrink-0" />
-              <span className="text-xs sm:text-sm font-medium truncate">
-                {t("dashboard.net_profit")}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
-                {formatRupiah(dashboardData?.summary?.net_profit || 0)}
-              </h3>
-              <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
-                <span className="text-[10px] sm:text-xs font-medium text-emerald-500">
-                  +Aktif
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+                  {t("dashboard.net_profit")}
                 </span>
-                <span className="text-[10px] sm:text-xs text-slate-400 truncate">margin</span>
+                <div>
+                  <h3 className="text-lg sm:text-2xl font-bold text-slate-900 truncate">
+                    {formatRupiah(dashboardData?.summary?.net_profit || 0)}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1 mt-1 sm:mt-2">
+                    <span className="text-[10px] sm:text-xs font-medium text-emerald-500">
+                      +Aktif
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 truncate">margin</span>
+                  </div>
+                </div>
+              </div>
+              <div className={`shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${(dashboardData?.summary?.net_profit || 0) >= 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'}`}>
+                {(dashboardData?.summary?.net_profit || 0) >= 0 ? <FiTrendingUp size={18} /> : <FiTrendingDown size={18} />}
               </div>
             </div>
           </div>
 
-          {/* Card 4: Status Kesehatan (Menyesuaikan grid 4 kolom) */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-slate-500 mb-2 sm:mb-4">
-              <FiActivity size={14} className="shrink-0" />
-              <span className="text-xs sm:text-sm font-medium truncate">Status Kesehatan</span>
-            </div>
+          {/* Card 4: Status Kesehatan */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <span className="block text-xs sm:text-sm font-medium text-slate-500 mb-2 sm:mb-4 truncate">
+              Status Kesehatan
+            </span>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${
@@ -755,19 +812,19 @@ const Dashboard = () => {
               <thead>
                 <tr className="border-b border-slate-100">
                   <th className="pb-3 px-4 text-xs font-medium text-slate-400">
-                    Deskripsi / ID
+                    {t('dashboard.table_desc_id')}
                   </th>
                   <th className="pb-3 px-4 text-xs font-medium text-slate-400">
-                    Kategori
+                    {t('dashboard.table_category')}
                   </th>
                   <th className="pb-3 px-4 text-xs font-medium text-slate-400">
-                    Tanggal
+                    {t('dashboard.table_date')}
                   </th>
                   <th className="pb-3 px-4 text-xs font-medium text-slate-400 text-right">
-                    Nominal
+                    {t('dashboard.table_amount')}
                   </th>
                   <th className="pb-3 px-4 text-xs font-medium text-slate-400 text-center">
-                    Status Cek
+                    {t('dashboard.table_status_check')}
                   </th>
                 </tr>
               </thead>
@@ -779,14 +836,15 @@ const Dashboard = () => {
                       colSpan="5"
                       className="py-12 text-center text-slate-500 text-sm"
                     >
-                      Belum ada transaksi sesuai filter. Mulai catat transaksi pertama Anda!
+                      {t('dashboard.no_transactions_filter')}
                     </td>
                   </tr>
                 ) : (
                   filteredTransactions.map((tx, idx) => (
                     <tr
                       key={tx.id || idx}
-                      className="hover:bg-slate-50/50 transition-colors"
+                      onClick={() => navigate("/dashboard/transactions")}
+                      className="hover:bg-slate-50/50 transition-colors cursor-pointer"
                     >
                       <td className="py-4 px-4 border-b border-slate-50">
                         <div className="flex items-center gap-3">
@@ -828,11 +886,11 @@ const Dashboard = () => {
                       <td className="py-4 px-4 border-b border-slate-50 text-center">
                         {JSON.parse(localStorage.getItem(`checked_trx_${tx.id || tx._id}`) || "false") ? (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                            <FiCheckCircle size={12} /> Sudah Dicek
+                            <FiCheckCircle size={12} /> {t('dashboard.status_checked')}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-                            <FiCircle size={12} /> Belum Dicek
+                            <FiCircle size={12} /> {t('dashboard.status_unchecked')}
                           </span>
                         )}
                       </td>
@@ -843,6 +901,123 @@ const Dashboard = () => {
             </table>
           </div>
         </div>
+
+        {/* ── MANAJEMEN AKUN (Owner Only) ── */}
+        {currentUserRole === "OWNER" && (
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mt-6">
+            <div className="px-5 md:px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center">
+                  <FiUser size={16} className="text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Manajemen Akun</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {usersList.length} {usersList.length > 1 ? "anggota" : "anggota"} tim terdaftar
+                  </p>
+                </div>
+              </div>
+              {loadingUsers && (
+                <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Nama Akun</th>
+                    <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Email</th>
+                    <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Role</th>
+                    <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Bergabung</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingUsers && usersList.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="py-16 text-center text-slate-400 text-sm">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-8 h-8 border-2 border-slate-200 border-t-indigo-500 rounded-full animate-spin" />
+                          Memuat data akun...
+                        </div>
+                      </td>
+                    </tr>
+                  ) : usersList.length === 0 && usersError ? (
+                    <tr>
+                      <td colSpan="4" className="py-16 text-center text-slate-400 text-sm">
+                        <div className="flex flex-col items-center gap-3">
+                          <FiUser size={28} className="text-slate-300" />
+                          <span className="text-rose-500 font-semibold text-xs">{usersError}</span>
+                          <button onClick={fetchUsers} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors">
+                            Muat Ulang
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : usersList.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="py-16 text-center text-slate-400 text-sm">
+                        <div className="flex flex-col items-center gap-3">
+                          <FiUser size={28} className="text-slate-300" />
+                          <span>Belum ada anggota tim.</span>
+                          <span className="text-xs text-slate-300">Tambah anggota baru di halaman Pengaturan.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    usersList.map((u, idx) => {
+                      const role = u.display_role;
+                      const isOwnerRole = role === "OWNER";
+                      const joined = u.created_at
+                        ? new Date(u.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+                        : "-";
+                      const roleConfig = isOwnerRole
+                        ? { dot: "bg-indigo-500", bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" }
+                        : role === "ADMIN"
+                          ? { dot: "bg-amber-500", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" }
+                          : { dot: "bg-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" };
+                      return (
+                        <tr key={u.id}
+                          onClick={() => navigate("/dashboard/settings?tab=roles")}
+                          className={`hover:bg-slate-50/60 transition-colors cursor-pointer ${idx < usersList.length - 1 ? "border-b border-slate-50" : ""}`}>
+                          <td className="py-4 px-5">
+                            <div className="flex items-center gap-3.5">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isOwnerRole ? "bg-indigo-100 text-indigo-600 ring-2 ring-indigo-200" : "bg-slate-100 text-slate-500"}`}>
+                                {u.display_name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-slate-900 truncate">
+                                  {u.display_name}
+                                  {u.is_current_user && (
+                                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md uppercase tracking-wide">Anda</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-5 text-sm text-slate-500 truncate max-w-[220px]">
+                            {u.email || <span className="text-slate-300 italic">-</span>}
+                          </td>
+                          <td className="py-4 px-5">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg uppercase tracking-wider border ${roleConfig.bg} ${roleConfig.text} ${roleConfig.border}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${roleConfig.dot}`} />
+                              {role}
+                            </span>
+                          </td>
+                          <td className="py-4 px-5 text-sm text-slate-500">
+                            <div className="flex items-center gap-2">
+                              <FiCalendar size={13} className="text-slate-300 shrink-0" />
+                              <span>{joined}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <style>{`
           .animate-fade-in {

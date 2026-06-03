@@ -24,14 +24,7 @@ const ProtectedRoute = ({ children }) => {
   if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
 
-  // --- TAMBAHKAN LOG INI ---
-  console.log("DEBUG AUTH:", {
-    user: user?.email,
-    role: profile?.role,
-    business_id: profile?.business_id,
-    onboarding_completed: profile?.onboarding_completed
-  });
-  // -------------------------
+
 
   const isPartofBusiness = profile && profile.business_id;
   // Karyawan (ADMIN, USER, STAFF) tidak perlu melewati onboarding karena Owner yang mengatur bisnisnya
