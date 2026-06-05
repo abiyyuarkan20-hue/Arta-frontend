@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
-  FiUser, FiMail, FiPhone, FiBriefcase,
-  FiCamera, FiSave, FiCheck, FiLoader, FiEdit3,
-  FiShield, FiCalendar, FiTrendingUp, FiKey, FiEye, FiEyeOff, FiX
-} from "react-icons/fi";
+  IconUser, IconMail, IconPhone, IconBriefcase,
+  IconCamera, IconDeviceFloppy, IconCheck, IconLoader2, IconEdit,
+  IconShield, IconKey, IconEye, IconEyeOff, IconX,
+  IconClock, IconCircleCheck, IconLock
+} from "@tabler/icons-react";
 import api from "../services/api";
 import { supabase } from "../services/supabaseClient";
 
@@ -309,7 +310,7 @@ export default function Profile() {
                   className="absolute -bottom-1 -right-1 w-7 h-7 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md flex items-center justify-center transition-colors"
                   title="Ganti foto profil"
                 >
-                  <FiCamera size={13} strokeWidth={2.5} />
+                  <IconCamera size={13} strokeWidth={2.5} />
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </div>
@@ -320,7 +321,7 @@ export default function Profile() {
               <p className="text-sm text-slate-500 font-medium mt-0.5">{profile.email || "—"}</p>
               {profile.namaUsaha && (
                 <div className="flex items-center gap-1.5 mt-2">
-                  <FiBriefcase size={12} className="text-indigo-500" />
+                  <IconBriefcase size={12} className="text-slate-600" />
                   <span className="text-xs font-bold text-indigo-600">{profile.namaUsaha}</span>
                 </div>
               )}
@@ -372,9 +373,9 @@ export default function Profile() {
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('profile.account_summary')}</h3>
             <div className="space-y-3">
               {[
-                { icon: FiCalendar, label: t('profile.joined_since'), value: profile.joinDate, color: "text-indigo-500 bg-indigo-50" },
-                { icon: FiTrendingUp, label: t('profile.account_status'), value: t('profile.status_active'), color: "text-emerald-500 bg-emerald-50" },
-                { icon: FiShield, label: t('profile.security'), value: t('profile.security_verified'), color: "text-purple-500 bg-purple-50" },
+                { icon: IconClock, label: t('profile.joined_since'), value: profile.joinDate, color: "text-slate-600 bg-slate-100" },
+                { icon: IconCircleCheck, label: t('profile.account_status'), value: t('profile.status_active'), color: "text-slate-600 bg-slate-100" },
+                { icon: IconLock, label: t('profile.security'), value: t('profile.security_verified'), color: "text-slate-600 bg-slate-100" },
               ].map(({ icon: Icon, label, value, color }) => (
                 <div key={label} className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
@@ -397,7 +398,7 @@ export default function Profile() {
           <motion.div variants={cardVariants} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-500/30">
-                <FiUser size={15} className="text-white" strokeWidth={2.5} />
+                <IconUser size={15} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
                 <h3 className="text-sm font-black text-slate-800">{t('profile.personal_info')}</h3>
@@ -408,7 +409,7 @@ export default function Profile() {
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FormInput
                 label={t('profile.full_name')}
-                icon={FiUser}
+                icon={IconUser}
                 value={profile.namaLengkap}
                 onChange={handleChange("namaLengkap")}
                 placeholder="Masukkan nama lengkap Anda"
@@ -416,7 +417,7 @@ export default function Profile() {
               />
               {!isOwner && (
                 <div className="flex items-start gap-1.5 p-3 bg-slate-50 rounded-xl">
-                  <FiShield size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                  <IconShield size={14} className="text-slate-600 mt-0.5 shrink-0" />
                   <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
                     Hanya pemilik akun (Owner) yang dapat mengubah nama lengkap.
                   </p>
@@ -424,7 +425,7 @@ export default function Profile() {
               )}
               <FormInput
                 label={t('profile.email_address')}
-                icon={FiMail}
+                icon={IconMail}
                 type="email"
                 value={profile.email}
                 onChange={handleChange("email")}
@@ -434,7 +435,7 @@ export default function Profile() {
               <div className="sm:col-span-2">
                 <FormInput
                   label={t('profile.phone_number')}
-                  icon={FiPhone}
+                  icon={IconPhone}
                   type="tel"
                   value={profile.telepon}
                   onChange={handleChange("telepon")}
@@ -443,7 +444,7 @@ export default function Profile() {
               </div>
               <div className="sm:col-span-2 space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <FiEdit3 size={11} />
+                  <IconEdit size={11} className="text-slate-600" />
                   {t('profile.short_bio')}
                 </label>
                 <textarea
@@ -462,8 +463,8 @@ export default function Profile() {
           {/* Change Password Card */}
           <motion.div variants={cardVariants} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center shadow-sm shadow-orange-500/30">
-                <FiKey size={15} className="text-white" strokeWidth={2.5} />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-500/30">
+                <IconKey size={15} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
                 <h3 className="text-sm font-black text-slate-800">{t('profile.account_security')}</h3>
@@ -492,7 +493,7 @@ export default function Profile() {
                     onClick={() => setShowOldPassword(!showOldPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
                   >
-                    {showOldPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    {showOldPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                   </button>
                 </div>
                 {passwordError && (
@@ -521,21 +522,27 @@ export default function Profile() {
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
                   >
-                    {showNewPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    {showNewPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                   </button>
                 </div>
                 {passwordData.newPassword.length > 0 && (
                   <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-2">
                     <div className="flex items-center gap-2 text-xs">
-                      {pwdCriteria.length ? <FiCheck size={14} className="text-emerald-500" /> : <FiX size={14} className="text-slate-300" />}
-                      <span className={pwdCriteria.length ? "text-emerald-600 font-medium" : "text-slate-500"}>Minimal 8 karakter</span>
+                      <span className="w-5 flex justify-center">
+                        {pwdCriteria.length ? <IconCheck size={14} className="text-slate-600" /> : <IconX size={14} className="text-slate-600" />}
+                      </span>
+                      <span className="text-xs text-slate-500">{t('profile.pwd_min_char')}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      {pwdCriteria.uppercase ? <FiCheck size={14} className="text-emerald-500" /> : <FiX size={14} className="text-slate-300" />}
-                      <span className={pwdCriteria.uppercase ? "text-emerald-600 font-medium" : "text-slate-500"}>Mengandung huruf besar</span>
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 flex justify-center">
+                        {pwdCriteria.uppercase ? <IconCheck size={14} className="text-slate-600" /> : <IconX size={14} className="text-slate-600" />}
+                      </span>
+                      <span className="text-xs text-slate-500">{t('profile.pwd_uppercase')}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      {pwdCriteria.number ? <FiCheck size={14} className="text-emerald-500" /> : <FiX size={14} className="text-slate-300" />}
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 flex justify-center">
+                        {pwdCriteria.number ? <IconCheck size={14} className="text-slate-600" /> : <IconX size={14} className="text-slate-600" />}
+                      </span>
                       <span className={pwdCriteria.number ? "text-emerald-600 font-medium" : "text-slate-500"}>Mengandung angka</span>
                     </div>
                   </div>
@@ -562,7 +569,7 @@ export default function Profile() {
                     onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
                   >
-                    {showConfirmNewPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    {showConfirmNewPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                   </button>
                 </div>
                 {isConfirmPasswordInvalid && (
@@ -587,9 +594,9 @@ export default function Profile() {
                 }
                 disabled:opacity-80 disabled:cursor-not-allowed`}
             >
-              {saveStatus === "saving" && <FiLoader size={16} className="animate-spin" />}
-              {saveStatus === "saved" && <FiCheck size={16} strokeWidth={3} />}
-              {saveStatus === "idle" && <FiSave size={16} strokeWidth={2.5} />}
+              {saveStatus === "saving" && <IconLoader2 size={16} className="animate-spin text-white" />}
+              {saveStatus === "saved" && <IconCheck size={16} strokeWidth={3} className="text-white" />}
+              {saveStatus === "idle" && <IconDeviceFloppy size={16} strokeWidth={2.5} className="text-white" />}
 
               {saveStatus === "saving" && t('profile.saving')}
               {saveStatus === "saved" && t('profile.save_success')}

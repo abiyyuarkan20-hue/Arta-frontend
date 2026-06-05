@@ -47,6 +47,11 @@ const getAllUsers = async (req, res) => {
       }
       if (employeesToFix.length > 0) {
         console.log(`Auto-sync business_id ke ${employeesToFix.length} karyawan`);
+        // Re-fetch profiles setelah sync agar data lokal up-to-date
+        const { data: updatedProfiles } = await supabaseAdmin
+          .from("profiles")
+          .select("*");
+        if (updatedProfiles) profiles = updatedProfiles;
       }
     }
 
@@ -55,32 +60,45 @@ const getAllUsers = async (req, res) => {
 
     if (authError) throw authError;
 
-    const users = (authData?.users || []).map((authUser) => {
-      const profile = (profiles || []).find((p) => p.id === authUser.id || p.email === authUser.email);
+    // Filter profil hanya milik bisnis yang sama
+    const businessProfiles = (profiles || [])
+      .filter((p) => p.business_id && p.business_id === ownerBusinessId)
+      .reduce((map, p) => {
+        map[p.id] = p;
+        return map;
+      }, {});
 
-      const name =
-        profile?.name ||
-        profile?.nama_lengkap ||
-        authUser.user_metadata?.nama_lengkap ||
-        authUser.user_metadata?.name ||
-        authUser.user_metadata?.full_name ||
-        authUser.email?.split("@")[0] ||
-        "Unknown";
+    // Selalu sertakan current user (Owner) meskipun business_id-nya beda
+    businessProfiles[currentUserId] = businessProfiles[currentUserId] || (profiles || []).find(p => p.id === currentUserId);
 
-      const role =
-        profile?.role ||
-        authUser.user_metadata?.role ||
-        "USER";
+    const users = (authData?.users || [])
+      .filter((authUser) => businessProfiles[authUser.id])
+      .map((authUser) => {
+        const profile = businessProfiles[authUser.id];
 
-      return {
-        id: authUser.id,
-        email: authUser.email,
-        name: name,
-        role: role.toUpperCase(),
-        created_at: authUser.created_at,
-        is_current_user: authUser.id === currentUserId,
-      };
-    });
+        const name =
+          profile?.name ||
+          profile?.nama_lengkap ||
+          authUser.user_metadata?.nama_lengkap ||
+          authUser.user_metadata?.name ||
+          authUser.user_metadata?.full_name ||
+          authUser.email?.split("@")[0] ||
+          "Unknown";
+
+        const role =
+          profile?.role ||
+          authUser.user_metadata?.role ||
+          "USER";
+
+        return {
+          id: authUser.id,
+          email: authUser.email,
+          name: name,
+          role: role.toUpperCase(),
+          created_at: authUser.created_at,
+          is_current_user: authUser.id === currentUserId,
+        };
+      });
 
     res.status(200).json({
       status: "success",

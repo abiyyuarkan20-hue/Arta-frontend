@@ -505,20 +505,46 @@ export default function Transactions({ isDashboard = false }) {
       submitData.append('category', formData.category);                  // Kategori transaksi (sinkron dengan input user)
 
       // File invoice opsional (key harus 'invoiceFile' sesuai docs)
-      if (formData.invoiceFile) {
-        // [WORKAROUND] Nonaktifkan upload file sementara karena bucket "bukti_transaksi" belum ada di backend Vercel
-        // submitData.append('invoiceFile', formData.invoiceFile);
-        alert("Pemberitahuan: Fitur upload invoice sedang dalam pemeliharaan (bucket not found). Transaksi akan disimpan tanpa lampiran gambar.");
+      const hasFile = !!formData.invoiceFile;
+      if (hasFile) {
+        submitData.append('invoiceFile', formData.invoiceFile);
       }
 
       // Kirim ke Backend
-      if (editingId) {
-        await transactionService.updateTransaction(editingId, submitData);
-      } else {
-        await transactionService.createTransaction(submitData);
+      try {
+        if (editingId) {
+          await transactionService.updateTransaction(editingId, submitData);
+        } else {
+          await transactionService.createTransaction(submitData);
+        }
+      } catch (uploadErr) {
+        // Jika gagal karena masalah bucket storage dan ada file terlampir,
+        // coba kirim ulang TANPA file agar data transaksi tetap tersimpan
+        const errMsg = (uploadErr.response?.data?.message || uploadErr.response?.data?.error || uploadErr.message || '').toLowerCase();
+        if (hasFile && (errMsg.includes('bucket') || errMsg.includes('storage'))) {
+          console.warn('Upload file gagal (bucket not found), mencoba simpan tanpa file...');
+          const retryData = new FormData();
+          retryData.append('type', formData.type);
+          retryData.append('amount', Math.abs(Number(formData.amount)));
+          retryData.append('date', formData.date);
+          retryData.append('description', formData.description || '-');
+          retryData.append('category', formData.category);
+
+          if (editingId) {
+            await transactionService.updateTransaction(editingId, retryData);
+          } else {
+            await transactionService.createTransaction(retryData);
+          }
+
+          // Beri tahu user bahwa transaksi tersimpan tapi tanpa lampiran
+          alert('Transaksi berhasil disimpan, namun lampiran invoice tidak dapat diupload saat ini (storage backend belum tersedia). Silakan hubungi tim backend untuk mengaktifkan fitur upload.');
+        } else {
+          // Error lain (bukan masalah bucket) → lempar ulang
+          throw uploadErr;
+        }
       }
 
-      // 5. Sukses -> Tutup modal dan reset
+      // Sukses -> Tutup modal dan reset
       setIsModalOpen(false);
       setEditingId(null);
       setFormData({

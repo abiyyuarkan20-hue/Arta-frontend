@@ -38,6 +38,25 @@ app.use("/api/profile", authMiddleware, profileRoutes);
 // User management routes (Dilindungi — hanya Owner/Admin)
 app.use("/api/users", authMiddleware, userRoutes);
 
+// Business route — proxy ke Vercel backend (atasi CORS)
+app.put("/api/business", authMiddleware, async (req, res) => {
+  try {
+    const response = await fetch("https://arta-backend-nine.vercel.app/api/business", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": req.headers.authorization
+      },
+      body: JSON.stringify(req.body)
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error("Proxy /api/business error:", err.message);
+    res.status(502).json({ status: "error", message: "Gagal terhubung ke backend bisnis." });
+  }
+});
+
 // Test Route
 app.get("/", (req, res) => {
   res.json({ status: "success", message: "Server Arta API aktif!" });

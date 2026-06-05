@@ -56,7 +56,13 @@ export default function Forecasting() {
         setModelUsed(data.method_used || data.model_used || "LSTM");
       } catch (err) {
         console.error("Gagal mengambil prediksi AI:", err);
-        setApiError(err.response?.data?.message || err.message);
+        const status = err.response?.status;
+        const backendMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+        if (status === 500) {
+          setApiError(`Server Error (500): Microservice AI Forecasting tidak dapat diakses. ${backendMsg}`);
+        } else {
+          setApiError(backendMsg);
+        }
       } finally {
         setLoading(false);
       }
@@ -72,9 +78,52 @@ export default function Forecasting() {
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       {/* Error Banner */}
       {apiError && !loading && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3 mb-6">
-          <FiAlertCircle className="text-rose-500 shrink-0" size={20} />
-          <p className="text-sm font-semibold text-rose-700">{apiError}</p>
+        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden mb-6">
+          {/* Jika 500 → kemungkinan data transaksi belum cukup untuk AI */}
+          {apiError.toLowerCase().includes('500') || apiError.toLowerCase().includes('internal') || apiError.toLowerCase().includes('server') ? (
+            <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+              <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-6 border border-amber-100">
+                <FiAlertTriangle size={36} className="text-amber-500" />
+              </div>
+              <h3 className="text-xl font-black text-slate-800 mb-2">Data Transaksi Belum Cukup</h3>
+              <p className="text-slate-500 font-medium max-w-md leading-relaxed mb-2">
+                Model AI membutuhkan <strong>data historis transaksi minimal 30 hari</strong> untuk menghasilkan prediksi arus kas yang akurat.
+              </p>
+              <p className="text-slate-400 text-sm max-w-md mb-8">
+                Silakan tambahkan lebih banyak data pemasukan &amp; pengeluaran di menu <strong>Transaksi</strong>, lalu kembali ke halaman ini.
+              </p>
+              <div className="flex items-center gap-3">
+                <a
+                  href="/dashboard/transactions"
+                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-black hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95"
+                >
+                  <FiTrendingUp size={16} /> Tambah Transaksi
+                </a>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  Coba Lagi
+                </button>
+              </div>
+              <p className="text-xs text-slate-400 mt-6 bg-slate-50 rounded-lg px-4 py-2 border border-slate-100">
+                Detail teknis: {apiError}
+              </p>
+            </div>
+          ) : (
+            <div className="p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <FiAlertCircle className="text-rose-500 shrink-0" size={20} />
+                <p className="text-sm font-semibold text-rose-700">{apiError}</p>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="ml-8 mt-1 px-4 py-2 bg-white border border-rose-200 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-100 transition-colors shadow-sm"
+              >
+                Coba Lagi
+              </button>
+            </div>
+          )}
         </div>
       )}
 

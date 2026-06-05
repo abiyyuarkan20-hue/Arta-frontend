@@ -4,63 +4,16 @@ const supabaseAdmin = supabase.supabaseAdmin;
 const getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const email = req.user.email;
     const authSupabase = supabase.createAuthClient(req.token);
 
-    // 1. Coba cari profil berdasarkan ID saat ini
     let { data, error } = await authSupabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .maybeSingle();
 
-    // 2. JIKA TIDAK KETEMU, cari berdasarkan EMAIL (Jembatan Google vs Manual)
-    // Ini penting untuk kasus: user sudah punya akun UMKM manual,
-    // lalu login via Google OAuth dengan email yang sama.
-    // Google OAuth membuat user baru dengan UUID berbeda, sehingga
-    // lookup by ID gagal. Kita perlu cari by email dan update ID-nya.
-    if (!data && email) {
-      // Gunakan supabaseAdmin (bypass RLS) jika tersedia, 
-      // karena RLS policy kemungkinan hanya mengizinkan auth.uid() = id
-      // sehingga query by email dengan authSupabase akan gagal
-      const lookupClient = supabaseAdmin || authSupabase;
-      const clientType = supabaseAdmin ? "admin (bypass RLS)" : "auth (RLS aktif)";
+    if (error) throw error;
 
-      console.log(`[AUTH FIX] Profil tidak ditemukan by ID, mencari via email: ${email} menggunakan ${clientType}`);
-
-      const { data: emailMatch, error: emailError } = await lookupClient
-        .from("profiles")
-        .select("*")
-        .eq("email", email)
-        .maybeSingle();
-
-      if (emailError) {
-        console.error(`[AUTH FIX] Email lookup error (${clientType}):`, emailError.message);
-      }
-
-      if (emailMatch) {
-        data = emailMatch;
-        console.log(`[AUTH FIX] ✅ Profil ditemukan via email lookup untuk: ${email} (user_type: ${emailMatch.user_type})`);
-
-        // Update ID profil agar cocok dengan userId yang sedang aktif (Google/Baru)
-        // Ini memastikan login berikutnya langsung ketemu tanpa lookup lagi
-        const updateClient = supabaseAdmin || authSupabase;
-        const { error: updateError } = await updateClient
-          .from("profiles")
-          .update({ id: userId })
-          .eq("email", email);
-
-        if (updateError) {
-          console.error(`[AUTH FIX] Gagal update ID profil:`, updateError.message);
-        } else {
-          console.log(`[AUTH FIX] ✅ ID profil berhasil di-update ke: ${userId}`);
-        }
-      } else {
-        console.log(`[AUTH FIX] Profil tidak ditemukan via email lookup untuk: ${email}`);
-      }
-    }
-
-    // 3. Kembalikan hasil
     res.status(200).json({ status: "success", data: { profile: data } });
   } catch (error) {
     console.error("❌ Get Profile Error:", error.message);
@@ -75,30 +28,45 @@ const updateOnboarding = async (req, res) => {
     const { user_type, nama_usaha, tipe_usaha } = req.body;
 
     const authSupabase = supabase.createAuthClient(req.token);
+    const isAdmin = !!supabaseAdmin;
     const dbClient = supabaseAdmin || authSupabase;
 
     const updateData = {
       id: userId,
       user_type,
       onboarding_completed: true,
-      email: req.user.email,
       nama_usaha: nama_usaha || null,
       tipe_usaha: tipe_usaha || null,
+      business_id: crypto.randomUUID(),
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await dbClient
-      .from("profiles")
-      .upsert(updateData)
-      .select()
-      .single();
-
-    if (error) throw error;
+    let profile;
+    if (isAdmin) {
+      const { data, error } = await dbClient
+        .from("profiles")
+        .upsert(updateData)
+        .select()
+        .single();
+      if (error) throw error;
+      profile = data;
+    } else {
+      const { error } = await dbClient
+        .from("profiles")
+        .upsert(updateData);
+      if (error) throw error;
+      const { data } = await authSupabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      profile = data;
+    }
 
     res.status(200).json({
       status: "success",
       message: "Profil berhasil diperbarui.",
-      data: { profile: data },
+      data: { profile },
     });
   } catch (error) {
     res.status(400).json({ status: "error", message: error.message });
@@ -112,24 +80,41 @@ const upgradeToUmkm = async (req, res) => {
     const { nama_usaha, tipe_usaha } = req.body;
 
     const authSupabase = supabase.createAuthClient(req.token);
+    const isAdmin = !!supabaseAdmin;
     const dbClient = supabaseAdmin || authSupabase;
 
-    const { data, error } = await dbClient
-      .from("profiles")
-      .upsert({
-        id: userId,
-        user_type: "umkm_aktif",
-        nama_usaha,
-        tipe_usaha,
-        email: req.user.email,
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    const upsertData = {
+      id: userId,
+      user_type: "umkm_aktif",
+      nama_usaha,
+      tipe_usaha,
+      business_id: crypto.randomUUID(),
+      updated_at: new Date().toISOString(),
+    };
 
-    if (error) throw error;
+    let profile;
+    if (isAdmin) {
+      const { data, error } = await dbClient
+        .from("profiles")
+        .upsert(upsertData)
+        .select()
+        .single();
+      if (error) throw error;
+      profile = data;
+    } else {
+      const { error } = await dbClient
+        .from("profiles")
+        .upsert(upsertData);
+      if (error) throw error;
+      const { data } = await authSupabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      profile = data;
+    }
 
-    res.status(200).json({ status: "success", data: { profile: data } });
+    res.status(200).json({ status: "success", data: { profile } });
   } catch (error) {
     res.status(400).json({ status: "error", message: error.message });
   }
@@ -189,10 +174,12 @@ const syncBusinessId = async (req, res) => {
       .maybeSingle();
 
     if (!ownerProfile?.business_id) {
-      return res.status(404).json({
-        status: "error",
-        message: "Owner belum memiliki business_id. Silakan Owner menyelesaikan onboarding terlebih dahulu.",
-      });
+      const newBusinessId = crypto.randomUUID();
+      await dbClient
+        .from("profiles")
+        .update({ business_id: newBusinessId, updated_at: new Date().toISOString() })
+        .eq("role", "OWNER");
+      ownerProfile.business_id = newBusinessId;
     }
 
     // Update business_id user saat ini
