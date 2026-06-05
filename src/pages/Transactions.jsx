@@ -804,7 +804,6 @@ export default function Transactions({ isDashboard = false }) {
                   <th className="px-6 py-4">{t('transactions.table_desc')}</th>
                   <th className="px-6 py-4">{t('transactions.table_category')}</th>
                   <th className="px-6 py-4 text-right">{t('transactions.table_amount')}</th>
-                  <th className="px-6 py-4 text-center">{t('transactions.table_proof')}</th>
                   <th className="px-6 py-4 text-center">{t('transactions.table_status_check')}</th>
                   <th className="px-6 py-4 text-center">{t('transactions.table_action')}</th>
                 </tr>
@@ -821,7 +820,6 @@ export default function Transactions({ isDashboard = false }) {
                         {trx.type === "Pemasukan" ? "+" : "-"}{formatRupiah(trx.amount)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">{trx.invoice ? <button onClick={() => setViewingInvoice(trx)} className="text-indigo-600">Lihat</button> : "-"}</td>
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleToggleCheck(trx.id)}
@@ -1067,63 +1065,7 @@ export default function Transactions({ isDashboard = false }) {
                       )}
                     </div>
 
-                    {/* Input Upload Invoice */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('transactions.invoice_proof')}</label>
-                      <div
-                        className={`w-full border-2 border-dashed rounded-2xl p-6 transition-all ${formData.invoiceFile
-                          ? "border-indigo-500 bg-indigo-50/50"
-                          : "border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300"
-                          } flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden`}
-                      >
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={handleFileUpload}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        />
 
-                        {isCompressing ? (
-                          <div className="flex flex-col items-center gap-2 pointer-events-none">
-                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-indigo-500 animate-pulse">
-                              <FiLoader size={24} className="animate-spin" />
-                            </div>
-                            <p className="text-sm font-bold text-slate-700">{t('transactions.compressing_image')}</p>
-                          </div>
-                        ) : formData.invoiceFile ? (
-                          <div className="flex flex-col items-center gap-2 relative z-0">
-                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-indigo-500">
-                              <FiPaperclip size={24} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-slate-800 line-clamp-1 px-4">{formData.invoiceFile.name}</p>
-                              <p className="text-xs font-medium text-slate-500">{(formData.invoiceFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                setFormData({ ...formData, invoiceFile: null });
-                              }}
-                              className="mt-2 text-[10px] uppercase tracking-wider font-black text-rose-500 hover:text-rose-600 bg-rose-50 px-3 py-1.5 rounded-full transition-colors relative z-20"
-                            >
-                              {t('transactions.remove_file')}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-2 pointer-events-none">
-                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-400">
-                              <FiUploadCloud size={24} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-slate-700">{t('transactions.drag_drop')}</p>
-                              <p className="text-xs font-medium text-slate-500 mt-1">{t('transactions.support_format')}</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
 
                   </div>
                 </div>

@@ -170,12 +170,32 @@ const Onboarding = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/api/profile/onboarding", {
-        user_type,
-        ...extra,
-      });
+      // 1. Simpan data onboarding ke database backend
+      const res = await api.post("/api/profile/onboarding", { user_type, ...extra });
       const profileData = res.data.data.profile;
 
+      // 1.5 Daftarkan bisnis ke backend Vercel (agar tabel business terisi dan AI jalan)
+      if (extra && extra.nama_usaha) {
+        try {
+          await fetch("/api/business", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${localStorage.getItem("token")}`
+            },
+            body: JSON.stringify({
+              name: extra.nama_usaha,
+              type: extra.tipe_usaha,
+              industry: extra.tipe_usaha,
+              founded_year: extra.lama_usaha
+            })
+          });
+        } catch (bizErr) {
+          console.error("Peringatan: Gagal register business_id ke AI service", bizErr);
+        }
+      }
+
+      // 2. Set Auth Metadata Supabase secara diam-diam (Silent Auth Update)
       const { error: supabaseError } = await supabase.auth.updateUser({
         data: {
           role: "OWNER",

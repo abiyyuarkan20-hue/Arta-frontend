@@ -217,7 +217,7 @@ const Settings = () => {
 
       if (!bizRes.ok) {
         const errData = await bizRes.json().catch(() => ({}));
-        throw new Error(errData.message || "Gagal menyimpan ke database bisnis");
+        throw new Error(errData.message || errData.error || "Gagal menyimpan ke database bisnis");
       }
 
       const bizData = await bizRes.json();

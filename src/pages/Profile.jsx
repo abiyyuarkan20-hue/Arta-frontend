@@ -123,6 +123,8 @@ export default function Profile() {
     passwordData.confirmNewPassword.length > 0 &&
     passwordData.newPassword !== passwordData.confirmNewPassword;
 
+  const [isGoogleLogin, setIsGoogleLogin] = useState(false);
+
   // Load user from localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -131,6 +133,13 @@ export default function Profile() {
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
+        
+        // Deteksi apakah user login dengan Google
+        const providers = user?.app_metadata?.providers || [];
+        if (providers.includes("google")) {
+          setIsGoogleLogin(true);
+        }
+
         setProfile((prev) => ({
           ...prev,
           namaLengkap: user?.user_metadata?.nama_lengkap || user?.user_metadata?.full_name || user?.user_metadata?.name || profileData?.nama_lengkap || "",
@@ -161,10 +170,10 @@ export default function Profile() {
 
   const handleSave = async () => {
     // Cek apakah user sedang mencoba mengganti password
-    const isChangingPassword = passwordData.oldPassword || passwordData.newPassword || passwordData.confirmNewPassword;
+    const isChangingPassword = passwordData.oldPassword || passwordData.newPassword || passwordData.confirmNewPassword || (isGoogleLogin && (passwordData.newPassword || passwordData.confirmNewPassword));
 
     if (isChangingPassword) {
-      if (!passwordData.oldPassword) {
+      if (!isGoogleLogin && !passwordData.oldPassword) {
         setPasswordError("Kata sandi lama wajib diisi");
         return;
       }
@@ -183,9 +192,8 @@ export default function Profile() {
 
     try {
       // 1. Jika ganti password, verifikasi password lama via SERVER
-      // PENTING: Jangan gunakan signInWithPassword di client karena akan
-      // menghancurkan sesi aktif dan menyebabkan error "akses ditolak" saat login ulang
-      if (isChangingPassword) {
+      // PENTING: Jika login dengan Google (password null), kita lewati verifikasi old password
+      if (isChangingPassword && !isGoogleLogin) {
         try {
           await api.post("/api/auth/verify-password", {
             password: passwordData.oldPassword,
@@ -227,9 +235,9 @@ export default function Profile() {
       };
       await api.put("/api/profile", backendPayload);
 
-      // --- Setelah ganti password: sign out bersih dan redirect ---
+      // --- Setelah ganti/buat password: sign out bersih dan redirect ---
       if (isChangingPassword) {
-        alert("Password berhasil diubah. Silakan login kembali untuk keamanan.");
+        alert(isGoogleLogin ? "Kata sandi berhasil dibuat! Anda sekarang bisa login menggunakan email dan kata sandi." : "Password berhasil diubah. Silakan login kembali untuk keamanan.");
         await supabase.auth.signOut();
         // Bersihkan data sesi, tapi jangan localStorage.clear() agar tidak menghapus hal lain
         localStorage.removeItem("token");
@@ -467,40 +475,49 @@ export default function Profile() {
                 <IconKey size={15} className="text-white" strokeWidth={2.5} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-slate-800">{t('profile.account_security')}</h3>
-                <p className="text-xs text-slate-500 font-medium">{t('profile.account_security_desc')}</p>
+                <h3 className="text-sm font-black text-slate-800">{isGoogleLogin ? "Buat Kata Sandi" : t('profile.account_security')}</h3>
+                <p className="text-xs text-slate-500 font-medium">{isGoogleLogin ? "Buat kata sandi agar bisa login dengan email" : t('profile.account_security_desc')}</p>
               </div>
             </div>
 
             <div className="p-6 space-y-5">
-              {/* Old Password */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {t('profile.old_password')}
-                </label>
-                <div className="relative">
-                  <input
-                    type={showOldPassword ? "text" : "password"}
-                    name="oldPassword"
-                    autoComplete="new-password"
-                    value={passwordData.oldPassword}
-                    onChange={handlePasswordChange}
-                    className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${passwordError ? 'border-red-400 focus:ring-red-400 focus:bg-red-50/50' : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}
-                    placeholder={t('profile.old_password_placeholder')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOldPassword(!showOldPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
-                  >
-                    {showOldPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
-                  </button>
+              {/* Pesan Info untuk SSO */}
+              {isGoogleLogin && (
+                <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex gap-3 text-sm text-indigo-800">
+                  <IconShield size={20} className="shrink-0 mt-0.5 text-indigo-500" />
+                  <p>Anda saat ini login dengan <strong>Google</strong>. Buat kata sandi di bawah ini jika Anda ingin bisa login menggunakan Email dan Kata Sandi ke depannya.</p>
                 </div>
-                {passwordError && (
-                  <p className="text-xs text-red-500 mt-1 font-medium">{passwordError}</p>
-                )}
+              )}
 
-              </div>
+              {/* Old Password (HANYA MUNCUL JIKA BUKAN GOOGLE LOGIN) */}
+              {!isGoogleLogin && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {t('profile.old_password')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showOldPassword ? "text" : "password"}
+                      name="oldPassword"
+                      autoComplete="new-password"
+                      value={passwordData.oldPassword}
+                      onChange={handlePasswordChange}
+                      className={`w-full px-4 py-3 pr-10 bg-slate-50 border ${passwordError ? 'border-red-400 focus:ring-red-400 focus:bg-red-50/50' : 'border-slate-200 focus:ring-indigo-500/20 focus:border-indigo-500'} rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all duration-200 shadow-sm`}
+                      placeholder={t('profile.old_password_placeholder')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOldPassword(!showOldPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                    >
+                      {showOldPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+                    </button>
+                  </div>
+                  {passwordError && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">{passwordError}</p>
+                  )}
+                </div>
+              )}
 
               {/* New Password */}
               <div className="space-y-1.5">
